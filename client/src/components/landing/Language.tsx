@@ -36,10 +36,20 @@ const setGoogTransCookie = (targetLang: string) => {
 
 const clearGoogTransCookie = () => {
     const hostname = window.location.hostname;
+    const parts = hostname.split('.');
     const expiry = "expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
     document.cookie = `googtrans=;${expiry};path=/`;
     document.cookie = `googtrans=;${expiry};path=/;domain=${hostname}`;
     document.cookie = `googtrans=;${expiry};path=/;domain=.${hostname}`;
+
+    // Nuke the cookie across all possible domain hierarchies
+    let domain = "";
+    for (let i = parts.length - 1; i >= 0; i--) {
+        domain = "." + parts[i] + domain;
+        document.cookie = `googtrans=;${expiry};path=/;domain=${domain}`;
+        document.cookie = `googtrans=;${expiry};path=/;domain=${domain.substring(1)}`;
+    }
 };
 
 // Wait for goog-te-combo to appear in the DOM (max ~5 s)
