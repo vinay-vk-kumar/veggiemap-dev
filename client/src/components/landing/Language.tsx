@@ -63,10 +63,16 @@ const waitForCombo = (timeout = 5000): Promise<HTMLSelectElement | null> =>
     });
 
 const GoogleTranslate: React.FC = () => {
-    // Initialise from cookie so the UI is correct immediately on reload
-    const [currentLang, setCurrentLang] = useState<string>(getLangFromCookie);
+    // Initialise with "en" so SSR perfectly matches initial hydration.
+    // Update it in useEffect to the cookie value to avoid React Hydration Error #418.
+    const [currentLang, setCurrentLang] = useState<string>("en");
     const [isOpen, setIsOpen] = useState(false);
     const [isChanging, setIsChanging] = useState(false);
+
+    // Read cookie only on client-side mount
+    useEffect(() => {
+        setCurrentLang(getLangFromCookie());
+    }, []);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const initDone = useRef(false);
 
@@ -175,6 +181,7 @@ const GoogleTranslate: React.FC = () => {
         <div className="relative inline-block w-full sm:w-auto" ref={dropdownRef}>
             <button
                 type="button"
+                translate="no"
                 onClick={() => !isChanging && setIsOpen((o) => !o)}
                 disabled={isChanging}
                 className="flex items-center justify-between gap-3 w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 sm:py-2.5 shadow-sm hover:border-emerald-500 dark:hover:border-emerald-500 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 group disabled:opacity-60 disabled:cursor-wait"
@@ -206,6 +213,7 @@ const GoogleTranslate: React.FC = () => {
                             return (
                                 <button
                                     key={lang.code}
+                                    translate="no"
                                     onClick={() => handleLanguageChange(lang.code)}
                                     className={cn(
                                         "flex items-center justify-between w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
