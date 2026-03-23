@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 
-// Define the socket URL
-const SOCKET_URL = "http://localhost:5000";
+// Define the socket URL — in prod this is the same domain (nginx proxies /socket.io → backend)
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
 let socket: Socket | null = null;
 

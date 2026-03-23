@@ -16,7 +16,7 @@ const cartIcon = new Icon({
 });
 
 const storeIcon = new Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/1055/1055646.png",
+    iconUrl: "https://img.icons8.com/fluency/96/stall.png",
     iconSize: [38, 38],
     iconAnchor: [19, 38],
     popupAnchor: [0, -38]

@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import { Loader2, MapPin, Phone, Clock, Store, ShoppingBag, ChevronLeft, Share2, MessageCircle, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MenuImage from "@/components/ui/MenuImage";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { toast } from "sonner"; // Assuming sonner is installed
+import { toast } from "sonner";
 
 interface Vendor {
     _id: string;
@@ -38,6 +39,7 @@ interface Vendor {
 export default function ShopPage() {
     const params = useParams();
     const router = useRouter();
+    const { user } = useAuth();
     const vendorId = params.id as string;
 
     const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -48,13 +50,18 @@ export default function ShopPage() {
     useEffect(() => {
         if (vendorId) {
             fetchVendor();
-            checkFavorite();
+            // Only check favorites if user is logged in as a consumer
+            if (user && user.role === 'consumer') {
+                checkFavorite();
+            }
         }
-    }, [vendorId]);
+    }, [vendorId, user]);
 
     const fetchVendor = async () => {
         try {
-            const response = await api.get(`/consumer/vendor/${vendorId}`);
+            const response = await api.get(`/consumer/vendor/${vendorId}`, {
+                headers: { 'Cache-Control': 'no-store' }
+            });
             setVendor(response.data);
         } catch (err: any) {
             console.error("Failed to fetch vendor:", err);
@@ -63,6 +70,20 @@ export default function ShopPage() {
             setIsLoading(false);
         }
     };
+
+    // Poll isOnline every 30s to keep status fresh
+    useEffect(() => {
+        if (!vendorId) return;
+        const interval = setInterval(async () => {
+            try {
+                const res = await api.get(`/consumer/vendor/${vendorId}`, {
+                    headers: { 'Cache-Control': 'no-store' }
+                });
+                setVendor(prev => prev ? { ...prev, isOnline: res.data.isOnline } : res.data);
+            } catch { /* silent */ }
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [vendorId]);
 
     const checkFavorite = async () => {
         try {
@@ -76,6 +97,11 @@ export default function ShopPage() {
     };
 
     const toggleFavorite = async () => {
+        if (!user || user.role !== 'consumer') {
+            toast.error("Sign in as a customer to save favorites");
+            router.push('/auth/signin');
+            return;
+        }
         try {
             const res = await api.post(`/consumer/favorites/${vendorId}`);
             const status = res.data.status;
@@ -94,7 +120,7 @@ export default function ShopPage() {
 
     const handleWhatsApp = () => {
         if (!vendor?.phoneNumber) return;
-        const message = `Hello ${vendor.shopName || vendor.vendorName}, I saw your shop on Seller App and want to order.`;
+        const message = `Hello ${vendor.shopName || vendor.vendorName}, I saw your shop on VeggieMap and want to order.`;
         const whatsappUrl = `https://wa.me/${vendor.phoneNumber}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
     };

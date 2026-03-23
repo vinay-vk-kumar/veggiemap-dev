@@ -26,8 +26,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         // So Consumers DO need to authenticate to be identified.
 
         if (token && user) {
-            const newSocket = io("http://localhost:5000", {
-                autoConnect: true, // Auto connect
+            const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+            const newSocket = io(SOCKET_URL, {
+                autoConnect: true,
                 transports: ["websocket"],
             });
 

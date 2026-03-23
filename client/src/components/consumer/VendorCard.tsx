@@ -19,6 +19,7 @@ interface Vendor {
     isOnline: boolean;
     distance?: number;
     menu: any[]; // Simplified for card
+    lastSeen?: number;
 }
 
 interface VendorCardProps {
@@ -39,19 +40,30 @@ export default function VendorCard({ vendor, onClose, isFavorite, onToggleFavori
         }
     }, [vendor]);
 
+    const [timeAgo, setTimeAgo] = useState("");
+
+    useEffect(() => {
+        if (!vendor.lastSeen || vendor.vendorType !== 'mobile') return;
+        const updateTime = () => {
+            const diffMs = Date.now() - vendor.lastSeen!;
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) setTimeAgo("Active now");
+            else setTimeAgo(`Seen ${diffMins} min${diffMins !== 1 ? 's' : ''} ago`);
+        };
+        updateTime();
+        const interval = setInterval(updateTime, 60000); // update every minute
+        return () => clearInterval(interval);
+    }, [vendor.lastSeen, vendor.vendorType]);
+
     const handleCall = () => {
         if (vendor.phoneNumber) window.open(`tel:${vendor.phoneNumber}`);
     };
 
     const handleWhatsapp = () => {
-        if (vendor.phoneNumber) {
-            const message = `Hi ${vendor.shopName || vendor.vendorName}, I saw your shop on VeggieMap.`;
-            // Clean phone number: remove non-numeric chars
-            const cleanNumber = vendor.phoneNumber.replace(/\D/g, '');
-            window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`, '_blank');
-        } else {
-            alert("Vendor has not provided a WhatsApp number.");
-        }
+        if (!vendor?.phoneNumber) return;
+        const message = `Hello ${vendor.shopName || vendor.vendorName}, I saw your shop on Seller App and want to order.`;
+        const whatsappUrl = `https://wa.me/${vendor.phoneNumber}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
     };
 
     const handleDirections = () => {
@@ -63,7 +75,7 @@ export default function VendorCard({ vendor, onClose, isFavorite, onToggleFavori
     };
 
     return (
-        <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:bottom-auto md:top-4 md:w-96 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 z-[1000] overflow-hidden animate-in slide-in-from-bottom-4 md:slide-in-from-right-4 fade-in duration-300">
+        <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:bottom-auto md:top-4 md:w-[400px] bg-white/80 dark:bg-zinc-950/80 backdrop-blur-[24px] rounded-[32px] shadow-[0_20px_40px_rgba(0,0,0,0.1)] border border-white/40 dark:border-white/10 z-[1000] overflow-hidden animate-in slide-in-from-bottom-8 md:slide-in-from-right-8 fade-in duration-500 will-change-transform">
             {/* Header Image */}
             <div className="h-40 bg-zinc-100 relative">
                 {vendor.shopImage ? (
@@ -85,20 +97,28 @@ export default function VendorCard({ vendor, onClose, isFavorite, onToggleFavori
                     <X className="w-4 h-4" />
                 </Button>
 
-                <div className="absolute bottom-3 left-4 right-4 text-white">
-                    <h3 className="font-bold text-xl truncate shadow-sm">
+                <div className="absolute bottom-4 left-5 right-5 text-white">
+                    <h3 className="font-extrabold text-2xl truncate shadow-sm font-outfit tracking-tight">
                         {vendor.shopName || vendor.vendorName}
                     </h3>
-                    <p className="text-xs text-white/90 flex items-center gap-2 mt-0.5 font-medium">
-                        {vendor.vendorType === 'mobile' ? 'Mobile Cart' : 'Static Shop'}
-                        <span>•</span>
+                    <p className="text-xs flex items-center gap-2 mt-0.5 font-medium truncate pb-1">
+                        <span className="text-white/90">{vendor.vendorType === 'mobile' ? 'Mobile Cart' : 'Static Shop'}</span>
+                        <span className="text-white/50">•</span>
                         <span className={cn(
                             "flex items-center gap-1",
                             vendor.isOnline ? "text-green-400" : "text-zinc-300"
                         )}>
-                            <span className={cn("w-1.5 h-1.5 rounded-full", vendor.isOnline ? "bg-green-400" : "bg-zinc-300")} />
+                            <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", vendor.isOnline ? "bg-green-400" : "bg-zinc-300")} />
                             {vendor.isOnline ? "Open Now" : "Closed"}
                         </span>
+                        {vendor.vendorType === 'mobile' && vendor.lastSeen && (
+                            <>
+                                <span className="text-white/50">•</span>
+                                <span className="text-amber-300/90 text-[10px] bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-sm whitespace-nowrap">
+                                    {timeAgo}
+                                </span>
+                            </>
+                        )}
                     </p>
                 </div>
             </div>
@@ -152,23 +172,23 @@ export default function VendorCard({ vendor, onClose, isFavorite, onToggleFavori
                 </div>
 
                 {/* Primary Actions Grid */}
-                <div className="grid grid-cols-4 gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                    <Button variant="outline" className="flex flex-col h-auto py-2.5 px-0 gap-1.5 text-[10px] border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900" onClick={handleCall}>
-                        <Phone className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                <div className="grid grid-cols-4 gap-2 pt-2 border-t border-zinc-200/50 dark:border-zinc-800/50">
+                    <Button variant="outline" className="flex flex-col h-auto py-3 px-0 gap-1.5 text-[10px] sm:text-xs font-semibold border-zinc-200/60 dark:border-zinc-800 shadow-sm active:scale-95 transition-all bg-white/50 dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-[16px]" onClick={handleCall}>
+                        <Phone className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
                         Call
                     </Button>
-                    <Button variant="outline" className="flex flex-col h-auto py-2.5 px-0 gap-1.5 text-[10px] border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900" onClick={handleWhatsapp}>
-                        <MessageCircle className="w-4 h-4 text-green-600" />
+                    <Button variant="outline" className="flex flex-col h-auto py-3 px-0 gap-1.5 text-[10px] sm:text-xs font-semibold border-zinc-200/60 dark:border-zinc-800 shadow-sm active:scale-95 transition-all bg-white/50 dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-[16px]" onClick={handleWhatsapp}>
+                        <MessageCircle className="w-5 h-5 text-emerald-600" />
                         Chat
                     </Button>
-                    <Button variant="outline" className="flex flex-col h-auto py-2.5 px-0 gap-1.5 text-[10px] border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900" onClick={handleDirections}>
-                        <Navigation className="w-4 h-4 text-blue-600" />
+                    <Button variant="outline" className="flex flex-col h-auto py-3 px-0 gap-1.5 text-[10px] sm:text-xs font-semibold border-zinc-200/60 dark:border-zinc-800 shadow-sm active:scale-95 transition-all bg-white/50 dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-[16px]" onClick={handleDirections}>
+                        <Navigation className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                         Map
                     </Button>
                     <Link href={`/shop/${vendor.userId}`} className="contents">
-                        <Button variant="default" className="flex flex-col h-auto py-2.5 px-0 gap-1.5 text-[10px] bg-green-600 hover:bg-green-700 text-white shadow-green-200 dark:shadow-none shadow-lg">
-                            <Store className="w-4 h-4" />
-                            Visit Shop
+                        <Button variant="default" className="flex flex-col h-auto py-3 px-0 gap-1.5 text-[10px] sm:text-xs font-bold bg-gradient-to-br from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-emerald-500/30 shadow-lg active:scale-95 transition-all rounded-[16px]">
+                            <Store className="w-5 h-5 filter drop-shadow-sm" />
+                            Visit
                         </Button>
                     </Link>
                 </div>

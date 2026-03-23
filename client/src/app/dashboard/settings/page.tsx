@@ -203,7 +203,12 @@ export default function SettingsPage() {
                             <div className="relative group w-32 h-32 rounded-full overflow-hidden border-2 border-dashed border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center">
                                 {profile.shopImage ? (
                                     /* eslint-disable-next-line @next/next/no-img-element */
-                                    <img src={profile.shopImage} alt="Shop Logo" className="w-full h-full object-cover" />
+                                    <img
+                                        src={profile.shopImage}
+                                        alt="Shop Logo"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                    />
                                 ) : (
                                     <Store className="w-10 h-10 text-zinc-300 dark:text-zinc-600" />
                                 )}
@@ -230,8 +235,10 @@ export default function SettingsPage() {
                                                     const res = await api.post("/upload", formData, {
                                                         headers: { "Content-Type": "multipart/form-data" },
                                                     });
-                                                    // Construct full URL
-                                                    const fullUrl = `http://localhost:5000${res.data.filePath}`;
+                                                    // Derive the server origin from the configured API base URL
+                                                    const serverOrigin = (api.defaults.baseURL || "http://localhost:5000/api")
+                                                        .replace(/\/api\/?$/, "");
+                                                    const fullUrl = `${serverOrigin}${res.data.filePath}`;
                                                     setProfile({ ...profile, shopImage: fullUrl });
                                                 } catch (err) {
                                                     console.error("Upload failed", err);

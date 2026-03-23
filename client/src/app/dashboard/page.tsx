@@ -1,16 +1,17 @@
 "use client";
 
 import { toast } from "sonner";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import api from "@/lib/api";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, Signal, Wifi, WifiOff, Store, Eye, MousePointerClick, Share2, Edit, MapPin } from "lucide-react";
+import { Store, Eye, MousePointerClick, Share2, Edit, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 export default function DashboardOverview() {
     const { user, updateUser } = useAuth();
@@ -18,6 +19,13 @@ export default function DashboardOverview() {
     const [isOnline, setIsOnline] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [stats, setStats] = useState({ totalItems: 0, activeItems: 0, views: 0, todayOrders: 0 });
+    const [isStatsLoading, setIsStatsLoading] = useState(true);
+
+    const [isOledMode, setIsOledMode] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wakeLockRef = useRef<any>(null);
+    const watchIdRef = useRef<number | null>(null);
+    const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -26,6 +34,8 @@ export default function DashboardOverview() {
                 setStats(res.data);
             } catch (err) {
                 console.error("Failed to fetch stats", err);
+            } finally {
+                setIsStatsLoading(false);
             }
         };
         fetchStats();
@@ -38,6 +48,79 @@ export default function DashboardOverview() {
         }
     }, [user]);
 
+    // Handle Wake Lock and Geolocation strictly for Mobile Vendors
+    useEffect(() => {
+        if (!user || user.vendorType !== 'mobile') return;
+
+        const requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+                    console.log('Wake Lock active');
+                }
+            } catch (err: any) {
+                console.error('Wake Lock error:', err.name, err.message);
+            }
+        };
+
+        const releaseWakeLock = async () => {
+            if (wakeLockRef.current !== null) {
+                await wakeLockRef.current.release();
+                wakeLockRef.current = null;
+                console.log('Wake Lock released');
+            }
+        };
+
+        if (isOnline) {
+            requestWakeLock();
+
+            // Start GPS tracking
+            if (navigator.geolocation && socket) {
+                watchIdRef.current = navigator.geolocation.watchPosition(
+                    (position) => {
+                        socket.emit('vendor:location-update', {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        });
+                    },
+                    (err) => console.error("GPS Watch Error:", err),
+                    { enableHighAccuracy: true, maximumAge: 0 }
+                );
+            }
+
+            // Inactivity timer for OLED Mode (30s)
+            const resetTimer = () => {
+                if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+                if (isOnline && !isOledMode) {
+                    inactivityTimerRef.current = setTimeout(() => setIsOledMode(true), 30000);
+                }
+            };
+
+            window.addEventListener('touchstart', resetTimer);
+            window.addEventListener('click', resetTimer);
+            resetTimer();
+
+            return () => {
+                releaseWakeLock();
+                if (watchIdRef.current !== null) {
+                    navigator.geolocation.clearWatch(watchIdRef.current);
+                    watchIdRef.current = null;
+                }
+                if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+                window.removeEventListener('touchstart', resetTimer);
+                window.removeEventListener('click', resetTimer);
+            };
+        } else {
+            setIsOledMode(false);
+            releaseWakeLock();
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+                watchIdRef.current = null;
+            }
+            if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+        }
+    }, [isOnline, user, socket, isOledMode]);
+
     const toggleOnlineStatus = async () => {
         setIsLoading(true);
         const newStatus = !isOnline;
@@ -49,13 +132,7 @@ export default function DashboardOverview() {
             await api.patch("/vendor/toggle-online", { isOnline: newStatus });
             updateUser({ ...user!, isOnline: newStatus });
 
-            // Socket Event
-            if (newStatus && user?.vendorType === 'mobile') {
-                // Mobile vendors start emitting location
-            } else if (!newStatus) {
-                // Offline
-            }
-
+            // Socket Event logic in future
         } catch (error: any) {
             console.error("Failed to toggle status:", error);
             toast.error("Failed to go online: " + (error.response?.data?.message || error.message));
@@ -67,151 +144,176 @@ export default function DashboardOverview() {
 
     const handleShare = () => {
         if (!user) return;
-        const shopUrl = `${window.location.origin}/shop/${user.userId}`; // Future public shop page
+        const shopUrl = `${window.location.origin}/shop/${user.userId}`;
         const text = `Buy fresh vegetables from ${user.vendorName || "my shop"} on VeggieMap! Check out my menu here: ${shopUrl}`;
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(whatsappUrl, "_blank");
     };
 
     return (
-        <div className="space-y-6 pb-20 md:pb-0">
-            {/* 1. Header & Status Section */}
-            <div className="flex flex-col gap-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                        Hello, {user?.vendorName?.split(' ')[0]}! 👋
-                    </h2>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
-                        {user?.vendorType === 'static'
-                            ? (user.shopName || "Your Shop")
-                            : "Mobile Vendor"}
-                    </p>
-                </div>
-
-                {/* Large Status Card */}
+        <div className="space-y-8 pb-24 md:pb-0">
+            {/* OLED Power Saver Mode Overlay */}
+            {isOledMode && user?.vendorType === 'mobile' && (
                 <div
-                    className={cn(
-                        "relative overflow-hidden rounded-2xl p-6 transition-all duration-300 shadow-sm border",
-                        isOnline
-                            ? "bg-green-600 border-green-500 text-white"
-                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white"
-                    )}
+                    className="fixed top-0 left-0 w-[100vw] h-[100dvh] z-[99999] bg-black flex flex-col items-center justify-center cursor-pointer overflow-hidden touch-none"
+                    onClick={() => setIsOledMode(false)}
                 >
-                    <div className="relative z-10 flex flex-col items-center justify-center gap-4 text-center">
-                        <div className={cn(
-                            "p-4 rounded-full transition-all",
-                            isOnline ? "bg-white/20" : "bg-zinc-100 dark:bg-zinc-800"
-                        )}>
-                            <Store className={cn("w-8 h-8", isOnline ? "text-white" : "text-zinc-400")} />
-                        </div>
+                    {/* Concentric Radar Rings */}
+                    <motion.div
+                        animate={{ scale: [1, 2.5], opacity: [0.8, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeOut" }}
+                        className="absolute w-24 h-24 rounded-full border border-emerald-500/50 pointer-events-none"
+                    />
+                    <motion.div
+                        animate={{ scale: [1, 2.5], opacity: [0.8, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeOut", delay: 1 }}
+                        className="absolute w-24 h-24 rounded-full border border-emerald-500/50 pointer-events-none"
+                    />
+                    <motion.div
+                        animate={{ scale: [1, 2.5], opacity: [0.8, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeOut", delay: 2 }}
+                        className="absolute w-24 h-24 rounded-full border border-emerald-500/50 pointer-events-none"
+                    />
 
-                        <div>
-                            <h3 className="text-xl font-bold">
-                                {isOnline ? "You are Online" : "You are Offline"}
-                            </h3>
-                            <p className={cn("text-sm mt-1", isOnline ? "text-green-100" : "text-zinc-500")}>
-                                {isOnline
-                                    ? "Customers can see you on the map."
-                                    : "Go online to start receiving orders."}
-                            </p>
-                        </div>
+                    {/* Core Pulse */}
+                    <div className="relative flex flex-col items-center gap-6 z-10">
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1], boxShadow: ["0px 0px 10px rgba(16,185,129,0.5)", "0px 0px 30px rgba(16,185,129,1)", "0px 0px 10px rgba(16,185,129,0.5)"] }}
+                            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                            className="w-6 h-6 rounded-full bg-emerald-500 shadow-emerald-500/80"
+                        />
+                        <p className="text-xl font-medium text-emerald-500/90 tracking-[0.2em] uppercase font-mono">Transmitting</p>
+                    </div>
 
-                        <div className="flex items-center gap-3 mt-2 bg-white/10 dark:bg-black/10 rounded-full px-1 py-1 pr-6 backdrop-blur-sm">
+                    <p className="absolute bottom-12 text-sm text-zinc-200 font-medium tracking-wide">Tap anywhere to return</p>
+                </div>
+            )}
+
+            {/* Extremely Large & Clear Status Card */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className={cn(
+                    "relative overflow-hidden rounded-[32px] p-8 md:p-10 transition-all duration-500 shadow-xl",
+                    isOnline
+                        ? "bg-emerald-600 text-white"
+                        : "bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white"
+                )}
+            >
+                <div className="relative z-10 flex flex-col items-center justify-center gap-6 text-center">
+                    <div className={cn(
+                        "p-5 rounded-2xl transition-all duration-500",
+                        isOnline ? "bg-white/20 shadow-inner backdrop-blur-md" : "bg-zinc-100 dark:bg-zinc-800"
+                    )}>
+                        <Store className={cn("w-12 h-12 md:w-16 md:h-16", isOnline ? "text-white drop-shadow-md" : "text-zinc-400")} />
+                    </div>
+
+                    <div>
+                        <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-2">
+                            {isOnline ? "You are Online" : "You are Offline"}
+                        </h3>
+                        <p className={cn("text-base md:text-xl font-medium", isOnline ? "text-emerald-100" : "text-zinc-500")}>
+                            {isOnline
+                                ? "Customers can find you on the map!"
+                                : "Turn on to start selling."}
+                        </p>
+                    </div>
+
+                    <div className="mt-4 flex flex-col items-center gap-3">
+                        {/* Massive Toggle for Accessibility */}
+                        <div className="scale-150 transform origin-center">
                             <Switch
                                 checked={isOnline}
                                 onCheckedChange={toggleOnlineStatus}
                                 disabled={isLoading}
                                 className={cn(
-                                    "data-[state=checked]:bg-white data-[state=checked]:text-green-600",
-                                    "data-[state=unchecked]:bg-zinc-200 dark:data-[state=unchecked]:bg-zinc-700"
+                                    "data-[state=checked]:bg-white",
+                                    "data-[state=unchecked]:bg-zinc-200 dark:data-[state=unchecked]:bg-zinc-700 h-6 w-11"
                                 )}
                                 thumbClassName={cn(
-                                    isOnline ? "bg-green-600" : "bg-white"
+                                    isOnline ? "bg-emerald-600 shadow-emerald-900/50" : "bg-white shadow-sm"
                                 )}
                             />
-                            <span className={cn("text-sm font-medium", isOnline ? "text-white" : "text-zinc-500 dark:text-zinc-400")}>
-                                {isOnline ? "Online" : "Offline"}
-                            </span>
+                        </div>
+                        <span className={cn("text-xs font-bold tracking-widest uppercase mt-4", isOnline ? "text-emerald-200" : "text-zinc-400")}>
+                            {isLoading ? "Updating..." : "Tap to Switch"}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Animated Background Blob when online */}
+                {isOnline && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.2 }}
+                        transition={{ duration: 1 }}
+                        className="absolute -right-20 -bottom-20 w-80 h-80 bg-white rounded-full blur-[80px]"
+                    />
+                )}
+            </motion.div>
+
+            {/* Hoverable Stats Section */}
+            <div>
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-4 px-2 font-outfit tracking-tight">Store Activity</h3>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white dark:bg-zinc-950 p-6 rounded-[24px] border border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3 hover:scale-[1.02] hover:shadow-xl transition-all cursor-default">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/50 w-fit rounded-2xl text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50">
+                            <Eye className="w-6 h-6" />
+                        </div>
+                        <div className="mt-2">
+                            {isStatsLoading ? (
+                                <Skeleton className="h-10 w-20" />
+                            ) : (
+                                <p className="text-4xl font-extrabold text-zinc-900 dark:text-white">{stats.views}</p>
+                            )}
+                            <p className="text-sm text-zinc-500 font-semibold mt-1">Profile Views</p>
                         </div>
                     </div>
 
-                    {/* Background Pattern */}
-                    {isOnline && (
-                        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-                    )}
+                    <div className="bg-white dark:bg-zinc-950 p-6 rounded-[24px] border border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3 hover:scale-[1.02] hover:shadow-xl transition-all cursor-default">
+                        <div className="p-3 bg-purple-50 dark:bg-purple-950/50 w-fit rounded-2xl text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/50">
+                            <MousePointerClick className="w-6 h-6" />
+                        </div>
+                        <div className="mt-2">
+                            {isStatsLoading ? (
+                                <Skeleton className="h-10 w-16" />
+                            ) : (
+                                <p className="text-4xl font-extrabold text-zinc-900 dark:text-white">{stats.totalItems}</p>
+                            )}
+                            <p className="text-sm text-zinc-500 font-semibold mt-1">Menu Items</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* 2. Stats Section (Horizontal Scroll on Mobile) */}
-            <div className="space-y-3">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white px-1">Overview</h3>
-                <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide snap-x">
-                    <div className="min-w-[160px] md:min-w-0 md:flex-1 bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3 snap-start">
-                        <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 w-fit rounded-xl text-blue-600">
-                            <Eye className="w-5 h-5" />
+            {/* Massive Easy-Tap Action Buttons */}
+            <div>
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-4 px-2 font-outfit tracking-tight">Quick Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Link href="/dashboard/menu" className="bg-white dark:bg-zinc-950 p-6 rounded-[24px] border-2 border-zinc-200/60 dark:border-zinc-800/60 flex items-center gap-5 hover:border-emerald-500 hover:shadow-lg dark:hover:border-emerald-500 transition-all group active:scale-[0.98]">
+                        <div className="p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/30 transition-colors">
+                            <Store className="w-8 h-8 text-zinc-600 dark:text-zinc-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
                         </div>
-                        <div>
-                            <p className="text-2xl font-bold text-zinc-900 dark:text-white">--</p>
-                            <p className="text-xs text-zinc-500 font-medium">Profile Views</p>
+                        <div className="flex-1">
+                            <h4 className="text-xl font-bold text-zinc-900 dark:text-white font-outfit">Update Menu</h4>
+                            <p className="text-sm font-medium text-zinc-500 mt-1">Change prices or stock</p>
                         </div>
-                    </div>
+                        <ArrowRight className="w-6 h-6 text-zinc-300 dark:text-zinc-700 group-hover:text-emerald-500 transition-colors" />
+                    </Link>
 
-                    <div className="min-w-[160px] md:min-w-0 md:flex-1 bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3 snap-start">
-                        <div className="p-2.5 bg-purple-50 dark:bg-purple-900/20 w-fit rounded-xl text-purple-600">
-                            <MousePointerClick className="w-5 h-5" />
+                    <button onClick={handleShare} className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-[24px] shadow-lg flex items-center gap-5 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-left group">
+                        <div className="p-4 bg-white/20 whitespace-pre backdrop-blur-md rounded-2xl border border-white/20">
+                            <Share2 className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                         </div>
-                        <div>
-                            <p className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.totalItems}</p>
-                            <p className="text-xs text-zinc-500 font-medium">Menu Items</p>
+                        <div className="flex-1">
+                            <h4 className="text-xl font-bold text-white tracking-tight font-outfit">Share Shop</h4>
+                            <p className="text-sm font-medium text-emerald-100 mt-1">Send your link on WhatsApp</p>
                         </div>
-                    </div>
+                        <ArrowRight className="w-6 h-6 text-emerald-100 group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </div>
-            </div>
-
-            {/* 3. Quick Actions Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                <Link href="/dashboard/menu" className="col-span-1 bg-zinc-50 dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between gap-4 hover:border-green-500/50 transition-colors group">
-                    <div className="p-2.5 bg-white dark:bg-zinc-800 w-fit rounded-xl border border-zinc-100 dark:border-zinc-700 shadow-sm group-hover:scale-110 transition-transform">
-                        <Edit className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-zinc-900 dark:text-white">Update Menu</h4>
-                        <p className="text-[11px] text-zinc-500 leading-tight mt-1">Add items or change prices</p>
-                    </div>
-                </Link>
-
-                <div onClick={handleShare} className="col-span-1 bg-gradient-to-br from-green-500 to-emerald-600 p-5 rounded-2xl text-white shadow-lg cursor-pointer active:scale-95 transition-transform">
-                    <div className="flex justify-between items-start">
-                        <div className="p-2.5 bg-white/20 w-fit rounded-xl backdrop-blur-sm">
-                            <Share2 className="w-5 h-5 text-white" />
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-white/80" />
-                    </div>
-                    <div className="mt-4">
-                        <h4 className="font-bold">Share Shop</h4>
-                        <p className="text-[11px] text-green-50 leading-tight mt-1">Get more customers</p>
-                    </div>
-                </div>
-
-                <Link href={`/shop/${user?.userId}`} target="_blank" className="col-span-2 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex items-center justify-between group">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                            <Store className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-                        </div>
-                        <span className="font-medium text-sm text-zinc-700 dark:text-zinc-300">Preview Public Shop Page</span>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-green-600 transition-colors" />
-                </Link>
             </div>
         </div>
     );
-}
-
-function ArrowRight({ className }: { className?: string }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-        </svg>
-    )
 }

@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 
 // --- Custom Icons ---
 const storeIcon = new Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/1055/1055646.png", // Store/Shop Icon
+    iconUrl: "https://img.icons8.com/fluency/96/stall.png", // Store/Shop Icon
     iconSize: [38, 38],
     iconAnchor: [19, 38],
     popupAnchor: [0, -38]

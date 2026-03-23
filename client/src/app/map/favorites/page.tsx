@@ -40,7 +40,7 @@ export default function FavoritesPage() {
                 <div className="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
                     <Heart className="w-5 h-5 text-red-600 fill-red-600" />
                 </div>
-                My Favorites
+                My Favourites
             </h1>
 
             {favorites.length === 0 ? (

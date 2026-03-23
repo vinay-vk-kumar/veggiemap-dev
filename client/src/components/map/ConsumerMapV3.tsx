@@ -1,31 +1,34 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useSocket } from "@/context/SocketContext";
 import { Icon, divIcon } from "leaflet";
-import { Loader2, Navigation, Search, X, Store } from "lucide-react";
+import { Loader2, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
-import VendorCard from "../consumer/VendorCard";
 import { useMapStore } from "@/store/useMapStore";
 import { useVendors, VendorMarker } from "@/hooks/useVendors";
 import useSupercluster from "use-supercluster";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { SearchBar } from "@/components/map-ui/SearchBar";
+import { FilterChips } from "@/components/map-ui/FilterChips";
+import { VendorListSheet } from "@/components/map-ui/VendorListSheet";
+import { useConsumerRealtimeVendors } from "@/features/consumerMap/useConsumerRealtimeVendors";
+import { VendorDetailSheet } from "@/components/vendor/VendorDetailSheet";
 // import { useSearchParams } from "next/navigation";
 
 // --- Icons (Same as before) ---
 const vendorIcon = new Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png",
+    iconUrl: "https://cdni.iconscout.com/illustration/premium/thumb/vegetable-seller-is-wearing-mask-and-pushing-the-vegetable-wooden-cart-illustration-svg-download-png-2259546.png",
     iconSize: [38, 38],
     iconAnchor: [19, 38],
     popupAnchor: [0, -38]
 });
 const storeIcon = new Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/1055/1055646.png",
+    iconUrl: "https://img.icons8.com/fluency/96/stall.png",
     iconSize: [38, 38],
     iconAnchor: [19, 38],
     popupAnchor: [0, -38]
@@ -117,6 +120,8 @@ export default function ConsumerMapV3() {
 
     // Favorites State
     const [favorites, setFavorites] = useState<string[]>([]);
+    const [isVendorListOpen, setIsVendorListOpen] = useState(false);
+    const [isVendorDetailOpen, setIsVendorDetailOpen] = useState(false);
 
     useEffect(() => {
         const fetchFavorites = async () => {
@@ -189,8 +194,29 @@ export default function ConsumerMapV3() {
         }
     }, [center, searchParams, setCenter, setUserLocation, setMode]);
 
+    // 1c. Join geo room for realtime updates (same contract as `ConsumerMap.tsx`)
+    const roomRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!socket || !center) return;
+
+        const [lat, lng] = center;
+        const newRoom = `geo-${Math.floor(lat)}-${Math.floor(lng)}`;
+
+        if (newRoom !== roomRef.current) {
+            socket.emit("consumer:join-room", {
+                lat,
+                lng,
+                previousRoom: roomRef.current
+            });
+            roomRef.current = newRoom;
+        }
+    }, [socket, center]);
+
     // 2. Data from Hook
     const { data: vendors = [] } = useVendors();
+
+    // 2b. Realtime overlay (socket)
+    const realtime = useConsumerRealtimeVendors(socket);
 
     // 3. Handle Specific Vendor (Deep Link / Selected) that might be missing from search (e.g. Offline)
     const [extraVendor, setExtraVendor] = useState<VendorMarker | null>(null);
@@ -235,9 +261,25 @@ export default function ConsumerMapV3() {
         return vendors;
     }, [vendors, extraVendor]);
 
+    // Apply realtime patch (location/status) to any visible vendors
+    const mergedVendors = useMemo(() => {
+        return (visibleVendors as VendorMarker[]).map((v) => {
+            const patch = realtime[v._id];
+            if (!patch) return v;
+            return {
+                ...v,
+                ...patch,
+            } as VendorMarker;
+        });
+    }, [visibleVendors, realtime]);
+
     const selectedVendor = useMemo(() =>
-        (visibleVendors as VendorMarker[]).find(v => v._id === selectedVendorId),
-        [visibleVendors, selectedVendorId]);
+        (mergedVendors as VendorMarker[]).find(v => v._id === selectedVendorId),
+        [mergedVendors, selectedVendorId]);
+
+    useEffect(() => {
+        setIsVendorDetailOpen(!!selectedVendorId);
+    }, [selectedVendorId]);
 
     const handleMyLoc = () => {
         navigator.geolocation.getCurrentPosition(pos => {
@@ -249,7 +291,7 @@ export default function ConsumerMapV3() {
     };
 
     // --- Clustering Logic ---
-    const points = useMemo(() => visibleVendors.map(v => ({
+    const points = useMemo(() => mergedVendors.map(v => ({
         type: "Feature",
         properties: {
             cluster: false,
@@ -261,7 +303,7 @@ export default function ConsumerMapV3() {
             type: "Point",
             coordinates: [v.lng, v.lat]
         }
-    })), [visibleVendors]);
+    })), [mergedVendors]);
 
     const mapBounds = useMemo(() => {
         if (!bounds) return [-180, -85, 180, 85] as [number, number, number, number];
@@ -280,82 +322,87 @@ export default function ConsumerMapV3() {
         options: { radius: 75, maxZoom: 17 } // Stop clustering at zoom 17
     });
 
-    if (!center) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+    if (!center) return (
+        <div className="h-screen w-full bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden flex flex-col">
+            {/* Map Background Skeleton Pattern */}
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
+
+            {/* Top UI Skeleton */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-10 flex flex-col gap-3">
+                <div className="h-14 w-full bg-white dark:bg-zinc-900 rounded-full shadow-sm border border-zinc-200 dark:border-zinc-800 animate-pulse flex items-center px-4 gap-3">
+                    <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800"></div>
+                    <div className="h-4 w-1/2 bg-zinc-200 dark:bg-zinc-800 rounded-full"></div>
+                </div>
+                <div className="flex gap-2">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-10 w-24 bg-white dark:bg-zinc-900 rounded-full shadow-sm border border-zinc-200 dark:border-zinc-800 animate-pulse"></div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Center Loading Indicator */}
+            <div className="flex-1 flex flex-col items-center justify-center relative z-10 gap-4">
+                <div className="w-16 h-16 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl flex items-center justify-center animate-bounce border border-zinc-100 dark:border-zinc-800">
+                    <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                </div>
+                <div className="text-zinc-500 font-medium text-sm animate-pulse">Finding fresh vendors nearby...</div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="relative h-full w-full">
-            {/* Search & Filter Bar */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[400] flex flex-col gap-3 pointer-events-auto">
-                {/* Search Input */}
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                    </div>
-                    <input
-                        type="text"
-                        placeholder="Search 'Tomatoes' or 'Raju Tea Stall'..."
-                        className="w-full pl-10 pr-4 py-3 bg-white/95 backdrop-blur-md border border-gray-200/50 rounded-2xl shadow-lg shadow-gray-200/50 outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-700 placeholder:text-gray-400 font-medium transition-all"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+            {/* Overlay UI (Search + Chips) */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-400 flex flex-col gap-3">
+                <SearchBar
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    results={vendors as VendorMarker[]}
+                    onPickResult={(vendor) => {
+                        setCenter([vendor.lat, vendor.lng]);
+                        setZoom(18);
+                        setSelectedVendorId(vendor._id);
+                        setIsVendorDetailOpen(true);
+                    }}
+                />
+
+                <FilterChips
+                    chips={[
+                        {
+                            id: "all",
+                            label: "All",
+                            selected: filters.category === "all",
+                            onClick: () => setFilters({ category: "all" }),
+                        },
+                        {
+                            id: "vegetable",
+                            label: "Vegetables",
+                            selected: filters.category === "vegetable",
+                            onClick: () => setFilters({ category: "vegetable" }),
+                        },
+                        {
+                            id: "fruit",
+                            label: "Fruits",
+                            selected: filters.category === "fruit",
+                            onClick: () => setFilters({ category: "fruit" }),
+                        },
+                    ]}
+                />
+
+                <div className="pointer-events-auto">
+                    <button
+                        type="button"
+                        onClick={() => setIsVendorListOpen(true)}
+                        className="w-full rounded-2xl px-4 py-3 border border-border bg-background/90 supports-backdrop-filter:bg-background/70 backdrop-blur-xl shadow-sm text-left"
+                    >
+                        <div className="text-sm font-semibold text-foreground">
+                            Nearby vendors
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                            Tap to view list
+                        </div>
+                    </button>
                 </div>
-
-                {/* Filters */}
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                    {['All', 'Vegetables', 'Fruits'].map(cat => (
-                        <button
-                            key={cat}
-                            className={`px-4 py-1.5 rounded-full text-sm font-semibold shadow-sm transition-all whitespace-nowrap ${filters.category === cat.toLowerCase() || (filters.category === 'all' && cat === 'All')
-                                ? 'bg-zinc-800 text-white'
-                                : 'bg-white text-gray-600 hover:bg-gray-50'
-                                }`}
-                            onClick={() => setFilters({ category: cat.toLowerCase() })}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Search Results Dropdown */}
-                {searchQuery && (
-                    <div className="bg-white/95 backdrop-blur-md border border-gray-200/50 rounded-2xl shadow-xl max-h-[60vh] overflow-y-auto mt-2 divide-y divide-gray-100">
-                        {vendors.length === 0 ? (
-                            <div className="p-4 text-center text-gray-500 text-sm">No vendors found nearby.</div>
-                        ) : (
-                            vendors.map(vendor => (
-                                <div
-                                    key={vendor._id}
-                                    className="p-3 hover:bg-gray-50 cursor-pointer flex gap-3 transition-colors"
-                                    onClick={() => {
-                                        setCenter([vendor.lat, vendor.lng]);
-                                        setZoom(18);
-                                        setSelectedVendorId(vendor._id);
-                                        // setSearchQuery(""); // Keep search query or not?
-                                    }}
-                                >
-                                    {/* Thumbnail */}
-                                    {vendor.shopImage ? (
-                                        <img src={vendor.shopImage} alt={vendor.vendorName} className="w-12 h-12 rounded-lg object-cover" />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
-                                            <Store className="w-6 h-6" />
-                                        </div>
-                                    )}
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="font-semibold text-gray-900 truncate">{vendor.shopName || vendor.vendorName}</h3>
-                                            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap">
-                                                {((vendor.distance || 0) / 1000).toFixed(1)} km
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 truncate">{vendor.vendorType} • {vendor.isOnline ? <span className="text-green-600 font-medium">Online</span> : <span className="text-gray-400">Closed</span>}</p>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                )}
             </div>
 
             <MapContainer
@@ -414,6 +461,7 @@ export default function ConsumerMapV3() {
                             eventHandlers={{
                                 click: () => {
                                     setSelectedVendorId(vendor._id);
+                                    setIsVendorDetailOpen(true);
                                 }
                             }}
                         />
@@ -425,21 +473,38 @@ export default function ConsumerMapV3() {
             </MapContainer>
 
             {/* Bottom Controls */}
-            <div className="absolute bottom-24 right-4 z-[400] flex flex-col gap-2 pointer-events-auto">
+            <div className="absolute bottom-24 right-4 z-400 flex flex-col gap-2 pointer-events-auto">
                 <Button size="icon" className="rounded-full shadow-lg bg-white hover:bg-gray-50 text-gray-700" onClick={handleMyLoc}>
                     <Navigation className="w-5 h-5" />
                 </Button>
             </div>
 
-            {/* Vendor Card */}
-            {selectedVendor && (
-                <VendorCard
-                    vendor={selectedVendor}
-                    onClose={() => setSelectedVendorId(null)}
+            <VendorListSheet
+                open={isVendorListOpen}
+                onOpenChange={setIsVendorListOpen}
+                vendors={mergedVendors as VendorMarker[]}
+                activeVendorId={selectedVendorId}
+                onPickVendor={(vendor) => {
+                    setIsVendorListOpen(false);
+                    setCenter([vendor.lat, vendor.lng]);
+                    setZoom(18);
+                    setSelectedVendorId(vendor._id);
+                    setIsVendorDetailOpen(true);
+                }}
+            />
+
+            {selectedVendor ? (
+                <VendorDetailSheet
+                    vendor={selectedVendor as any}
+                    open={isVendorDetailOpen}
+                    onOpenChange={(open) => {
+                        setIsVendorDetailOpen(open);
+                        if (!open) setSelectedVendorId(null);
+                    }}
                     isFavorite={favorites.includes(selectedVendor._id)}
                     onToggleFavorite={() => handleToggleFavorite(selectedVendor._id)}
                 />
-            )}
+            ) : null}
         </div>
     );
 }

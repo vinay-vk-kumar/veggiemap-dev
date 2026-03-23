@@ -49,7 +49,7 @@ export default function MenuImage({ src, alt, category, previewMode = false, cla
         <img
             src={src}
             alt={alt}
-            className={cn("w-full h-full object-contain", !previewMode && "object-cover", className)}
+            className={cn("w-full h-full object-cover", className)}
             onError={() => {
                 console.error("Image failed to load:", src);
                 setIsError(true);

@@ -4,38 +4,46 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useSocket } from "@/context/SocketContext";
-import { Icon } from "leaflet";
+import { Icon, divIcon } from "leaflet";
 import { Loader2, Navigation, Search, Filter, X, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 import VendorCard from "../consumer/VendorCard";
-import { useAuth } from "@/context/AuthContext";
 import { FilterModal } from "./FilterModal";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 // --- Custom Icons ---
-const vendorIcon = new Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/3721/3721619.png", // Moving Cart
-    iconSize: [38, 38],
-    iconAnchor: [19, 38],
-    popupAnchor: [0, -38]
-});
+const getRotatedVendorIcon = (bearing = 0) => {
+    return divIcon({
+        className: 'bg-transparent border-0',
+        html: `<div style="transform: rotate(${bearing}deg); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease;">
+                 <img src="https://cdn-icons-png.flaticon.com/512/3721/3721619.png" style="width: 100%; height: 100%; object-fit: contain;" />
+               </div>`,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19], // Centered for rotation
+        popupAnchor: [0, -19]
+    });
+};
 
-const storeIcon = new Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/1055/1055646.png", // Static Shop (Online)
-    iconSize: [38, 38],
-    iconAnchor: [19, 38],
-    popupAnchor: [0, -38]
-});
+const storeIconSVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
 
-const storeOfflineIcon = new Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/1055/1055644.png", // Static Shop (Offline/Grey)
-    iconSize: [38, 38],
-    iconAnchor: [19, 38],
-    popupAnchor: [0, -38],
-    className: "grayscale"
-});
+const getStoreIcon = (isOnline: boolean) => {
+    const color = isOnline ? '#10b981' : '#f43f5e'; // Emerald vs Rose
+    return divIcon({
+        className: 'bg-transparent border-0',
+        html: `<div style="position: relative; width: 44px; height: 50px; display: flex; align-items: flex-end; justify-content: center; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.2)); transition: transform 0.2s;">
+                 <div style="background-color: ${color}; width: 38px; height: 38px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; z-index: 2; position: absolute; top: 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                    ${storeIconSVG}
+                 </div>
+                 <div style="width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 18px solid ${color}; position: absolute; bottom: 2px; z-index: 1;"></div>
+               </div>`,
+        iconSize: [44, 50],
+        iconAnchor: [22, 50],
+        popupAnchor: [0, -50]
+    });
+};
 
 const myLocationIcon = new Icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/484/484167.png", // Blue dot
@@ -79,6 +87,8 @@ interface VendorMarker {
     isOnline: boolean;
     distance?: number;
     phoneNumber?: string;
+    lastSeen?: number; // timestamp
+    bearing?: number; // 0-360 degrees
 }
 
 interface SearchTag {
@@ -185,6 +195,15 @@ export default function ConsumerMap() {
             const { vendorId, location } = data;
             setVendors(prev => {
                 const existing = prev[vendorId] || {};
+                
+                // Calculate bearing for movement direction
+                let newBearing = existing.bearing || 0;
+                if (existing.lat && existing.lng && (existing.lat !== location.lat || existing.lng !== location.lng)) {
+                   const dy = location.lat - existing.lat;
+                   const dx = Math.cos(Math.PI / 180 * existing.lat) * (location.lng - existing.lng);
+                   newBearing = Math.atan2(dx, dy) * 180 / Math.PI;
+                }
+
                 return {
                     ...prev,
                     [vendorId]: {
@@ -196,6 +215,8 @@ export default function ConsumerMap() {
                         vendorType: 'mobile',
                         isOnline: true,
                         vendorName: existing.vendorName || "Active Vendor",
+                        lastSeen: Date.now(),
+                        bearing: newBearing
                     } as VendorMarker
                 };
             });
@@ -424,8 +445,8 @@ export default function ConsumerMap() {
                         position={[vendor.lat, vendor.lng]}
                         icon={
                             vendor.isStatic
-                                ? (vendor.isOnline ? storeIcon : storeOfflineIcon)
-                                : vendorIcon
+                                ? getStoreIcon(vendor.isOnline)
+                                : getRotatedVendorIcon(vendor.bearing || 0)
                         }
                         eventHandlers={{
                             click: () => {
