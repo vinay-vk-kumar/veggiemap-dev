@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -29,8 +29,18 @@ export default function SignUpPage() {
         location: null as { lat: number, lng: number } | null
     });
 
-    const { login } = useAuth();
+    const { login, user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
+
+    useEffect(() => {
+        if (!isAuthLoading && user) {
+            if (user.role === "vendor") {
+                router.push("/dashboard");
+            } else {
+                router.push("/map");
+            }
+        }
+    }, [user, isAuthLoading, router]);
 
     const handleLocationAccess = () => {
         setLocationStatus("loading");
