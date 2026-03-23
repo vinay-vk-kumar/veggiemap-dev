@@ -105,6 +105,7 @@ router.post('/vendor/login', async (req, res) => {
             _id: vendor._id,
             vendorName: vendor.vendorName,
             shopName: vendor.shopName,
+            shopImage: vendor.shopImage || null,
             name: vendor.vendorName,
             email: vendor.email,
             phoneNumber: vendor.phoneNumber,
@@ -203,4 +204,39 @@ router.post('/consumer/login', async (req, res) => {
 });
 
 
-module.exports = router;
+// --- Admin Login Route ---
+
+// @route   POST /api/auth/admin/login
+// @desc    Authenticate admin using credentials stored in .env
+// @access  Public (but secret URL known only to admin)
+router.post('/admin/login', async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Please provide email and password.' });
+    }
+
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+    const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET;
+
+    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ message: 'Invalid admin credentials.' });
+    }
+
+    // Sign with the ADMIN-ONLY secret — completely separate from normal user JWT
+    const token = jwt.sign(
+        { id: 'admin', role: 'admin' },
+        ADMIN_JWT_SECRET,
+        { expiresIn: '7d' }
+    );
+
+    res.json({
+        message: 'Admin authenticated.',
+        token,
+        role: 'admin'
+    });
+});
+
+
+module.exports = router;

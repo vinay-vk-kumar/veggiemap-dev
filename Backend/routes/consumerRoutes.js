@@ -194,6 +194,7 @@ router.get('/search', protect, async (req, res) => {
             vendorType: 1,
             location: 1, // Needed for clustering
             isOnline: 1,
+            phoneNumber: 1,
             menu: {
                 $filter: {
                     input: "$menu",

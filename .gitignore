@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+*/node_modules/
 .pnp
 .pnp.js
 
@@ -21,10 +22,7 @@ yarn-error.log*
 
 # Environment Variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 *.env
 *.env.*
 
@@ -49,5 +47,7 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
-# Backend specific
+# Backend and Uploads
+uploads/
+*/uploads/
 Backend/uploads/

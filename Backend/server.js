@@ -13,9 +13,20 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const app = express();
 const server = http.createServer(app);
 
-// Use CORS middleware for API requests
+// Allowed origins — production domain + localhost for dev/testing
+const ALLOWED_ORIGINS = [
+    'https://veggiemap.codewithvin.app',
+    'http://localhost:3000',
+    'http://localhost:5000',
+];
+
 app.use(cors({
-    origin: '*', // Adjust this for production security
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS blocked: ${origin}`));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
 }));
@@ -58,8 +69,9 @@ const Consumer = require('./models/Consumer');
 // --- 2. Socket.io Initialization ---
 const io = new Server(server, {
     cors: {
-        origin: "*", // Allow all origins for the college project testing
-        methods: ["GET", "POST"]
+        origin: ALLOWED_ORIGINS,
+        methods: ["GET", "POST"],
+        credentials: true,
     }
 });
 
@@ -163,17 +175,35 @@ io.on('connection', (socket) => {
         const coordinates = [parseFloat(lng), parseFloat(lat)]; // [lng, lat] for GeoJSON
 
         try {
-            // 2. Update DB location
-            await Vendor.findOneAndUpdate(
-                { userId: vendorId, vendorType: 'mobile' },
-                {
-                    isOnline: true,
-                    location: {
-                        type: 'Point',
-                        coordinates: coordinates
+            const client = activeClients[socket.id];
+            const now = Date.now();
+
+            // 2. Update DB location (Debounced: only write to DB every 30s max to prevent DB crashing)
+            if (!client.lastDbUpdate || now - client.lastDbUpdate > 30000) {
+                await Vendor.findOneAndUpdate(
+                    { userId: vendorId, vendorType: 'mobile' },
+                    {
+                        isOnline: true,
+                        location: {
+                            type: 'Point',
+                            coordinates: coordinates
+                        }
                     }
+                );
+
+                // Keep Search Tags in sync with the location occasionally
+                try {
+                    const SearchTag = require('./models/SearchTag');
+                    await SearchTag.updateMany(
+                        { userId: vendorId },
+                        { $set: { location: { type: 'Point', coordinates: coordinates }, isOnline: true } }
+                    );
+                } catch (err) {
+                    console.error("Error updating SearchTag location:", err.message);
                 }
-            );
+
+                client.lastDbUpdate = now;
+            }
 
             // 3. Determine the current geo-room for broadcasting
             const roomName = getGeoRoomName(lat, lng);
@@ -220,28 +250,41 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- DISCONNECT HANDLER (Step 21 - UNCHANGED) ---
+    // --- DISCONNECT HANDLER ---
     socket.on('disconnect', async () => {
         console.log(`[Socket] Client disconnected: ${socket.id}`);
 
         if (activeClients[socket.id]) {
             const client = activeClients[socket.id];
 
-            // If the disconnected client was a vendor, mark them offline in the DB
             if (client.role === 'vendor') {
-                console.log(`[Socket Disconnect] Marking Vendor ${client.userId} as OFFLINE in DB.`);
-                await Vendor.findOneAndUpdate(
-                    { userId: client.userId },
-                    { isOnline: false }
-                );
-
                 const isStatic = client.vendorType === 'static';
 
                 if (isStatic) {
-                    // STATIC: Just mark as offline (Closed), don't remove from map
-                    console.log(`[Vendor Offline] Static Vendor ${client.userId} set to offline.`);
+                    // STATIC vendors: HTTP PATCH /toggle-online is the source of truth.
+                    // Do NOT reset isOnline on socket disconnect — they may have toggled
+                    // online via the dashboard and their socket disconnecting is unrelated.
+                    console.log(`[Socket Disconnect] Static Vendor ${client.userId} disconnected — keeping DB isOnline as-is.`);
 
-                    // --- SYNC SEARCH TAG ---
+                    // Broadcast current DB status so consumers stay in sync
+                    try {
+                        const v = await Vendor.findOne({ userId: client.userId }).select('isOnline');
+                        io.emit('vendor:status-update', {
+                            vendorId: client.userId,
+                            isOnline: v ? v.isOnline : false
+                        });
+                    } catch (err) {
+                        console.error('Error broadcasting static vendor disconnect status:', err);
+                    }
+                } else {
+                    // MOBILE vendors: GPS tracking stops on disconnect → mark offline
+                    console.log(`[Socket Disconnect] Mobile Vendor ${client.userId} disconnected — marking OFFLINE.`);
+                    await Vendor.findOneAndUpdate(
+                        { userId: client.userId },
+                        { isOnline: false }
+                    );
+
+                    // Sync SearchTags
                     try {
                         const SearchTag = require('./models/SearchTag');
                         await SearchTag.updateMany(
@@ -249,24 +292,15 @@ io.on('connection', (socket) => {
                             { $set: { isOnline: false } }
                         );
                     } catch (err) {
-                        console.error("Error syncing SearchTag on disconnect:", err);
+                        console.error('Error syncing SearchTag on mobile disconnect:', err);
                     }
 
-                    // Broadcast status update
+                    // Broadcast removal
+                    io.emit('vendor:removed', { vendorId: client.userId });
                     io.emit('vendor:status-update', {
                         vendorId: client.userId,
                         isOnline: false
                     });
-                } else {
-                    // MOBILE: Remove from map as they might stop tracking
-                    console.log(`[Vendor Offline] Mobile Vendor ${client.userId} removed.`);
-                    // Broadcast removal
-                    if (socket.currentRoom) {
-                        io.to(socket.currentRoom).emit('vendor:removed', { vendorId: client.userId });
-                    } else {
-                        // Fallback if no room tracking (or just broadcast global for now)
-                        io.emit('vendor:removed', { vendorId: client.userId });
-                    }
                 }
             }
 
@@ -301,6 +335,10 @@ app.use('/api/consumer', consumerRoutes)
 // Upload Routes
 const uploadRoutes = require('./routes/uploadRoutes');
 app.use('/api/upload', uploadRoutes);
+
+// Bug Report Routes
+const bugRoutes = require('./routes/bugRoutes');
+app.use('/api/bugs', bugRoutes);
 
 // require('./routes/consumerRoutes')(app); // Next steps
 
