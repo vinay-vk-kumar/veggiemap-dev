@@ -133,16 +133,9 @@ const GoogleTranslate: React.FC = () => {
         try {
             if (selectedCode === "en") {
                 clearGoogTransCookie();
-                // Use Google's own restore function if available, otherwise reload
-                const restoreFn =
-                    (window as any).google?.translate?.TranslateElement?.getInstance?.()
-                        ?.restore;
-                if (typeof restoreFn === "function") {
-                    restoreFn();
-                    setCurrentLang("en");
-                } else {
-                    window.location.reload();
-                }
+                // Google's restoreFn is unreliable in React apps.
+                // A full reload is the most robust way to return to the original DOM.
+                window.location.reload();
                 return;
             }
 
