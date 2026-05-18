@@ -235,10 +235,8 @@ export default function SettingsPage() {
                                                     const res = await api.post("/upload", formData, {
                                                         headers: { "Content-Type": "multipart/form-data" },
                                                     });
-                                                    // Derive the server origin from the configured API base URL
-                                                    const serverOrigin = (api.defaults.baseURL || "http://localhost:5000/api")
-                                                        .replace(/\/api\/?$/, "");
-                                                    const fullUrl = `${serverOrigin}${res.data.filePath}`;
+                                                    // Cloudinary returns a full URL directly — no need to prepend server origin
+                                                    const fullUrl = res.data.filePath;
                                                     setProfile({ ...profile, shopImage: fullUrl });
                                                 } catch (err) {
                                                     console.error("Upload failed", err);
