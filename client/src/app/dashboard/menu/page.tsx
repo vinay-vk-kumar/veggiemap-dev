@@ -64,9 +64,8 @@ export default function MenuPage() {
             const response = await api.post("/upload", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
-            const serverOrigin = (api.defaults.baseURL || "http://localhost:5000/api")
-                .replace(/\/api\/?$/, "");
-            setFormImage(`${serverOrigin}${response.data.filePath}`);
+            // Cloudinary returns a full URL directly — no need to prepend server origin
+            setFormImage(response.data.filePath);
             toast.success("Image uploaded!");
         } catch (error) {
             console.error("Upload failed", error);
