@@ -13,12 +13,12 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const app = express();
 const server = http.createServer(app);
 
-// Allowed origins — production domain + localhost for dev/testing
-const ALLOWED_ORIGINS = [
-    'https://veggiemap.codewithvin.app',
-    'http://localhost:3000',
-    'http://localhost:5000',
-];
+// Allowed origins — loaded from ALLOWED_ORIGINS env var (comma-separated)
+// e.g. ALLOWED_ORIGINS=https://veggiemap.vercel.app,https://veggiemap.codewithvin.app,http://localhost:3000
+// Falls back to localhost only if not set (safe for local dev)
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    : ['http://localhost:3000', 'http://localhost:5000'];
 
 app.use(cors({
     origin: (origin, callback) => {
