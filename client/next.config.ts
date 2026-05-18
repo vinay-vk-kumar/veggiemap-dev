@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   images: {
     remotePatterns: [
       {
@@ -15,7 +14,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "cdn-icons-png.flaticon.com",
-      }
+      },
+      {
+        // Cloudinary — hosts all uploaded vendor/shop images
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
     ],
   },
 };
