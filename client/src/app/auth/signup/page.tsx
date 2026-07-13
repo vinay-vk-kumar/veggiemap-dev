@@ -194,7 +194,7 @@ export default function SignUpPage() {
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             className="block w-full rounded-md border-zinc-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm h-10 px-3 py-2 bg-white dark:bg-zinc-900 dark:border-zinc-700"
-                            placeholder={role === "vendor" ? "e.g. Ramu's Fresh Veggies" : "e.g. Vinay Kumar"}
+                            placeholder={role === "vendor" ? "e.g. Ramu's Fresh Veggies" : "e.g. don jhoe"}
                         />
                     </div>
                 </div>

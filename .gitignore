@@ -51,3 +51,4 @@ next-env.d.ts
 uploads/
 */uploads/
 Backend/uploads/
+Backend/seed.js

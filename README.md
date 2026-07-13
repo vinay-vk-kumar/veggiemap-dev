@@ -1,203 +1,160 @@
-# VeggieMap - Hyperlocal Vegetable Vendor Finder 🥦📍
+# VeggieMap
 
-VeggieMap is a real-time, hyperlocal marketplace connecting consumers with static vegetable shops and mobile hawkers. It utilizes geospatial technology to show vendors on a live map, allowing users to find fresh produce nearby.
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Tech Stack](https://img.shields.io/badge/tech--stack-MERN--Stack-blue)
 
-## 🏗️ System Architecture
+VeggieMap synchronizes localized commerce by bridging the visibility gap between mobile street vendors and nearby consumers. Historically, fresh produce vendors rely heavily on foot traffic and routine schedules, while consumers are forced to guess when local carts will arrive in their neighborhood. This disconnect results in lost sales for vendors and inconvenience for consumers.
 
-The application is built using the **MERN Stack** (MongoDB, Express.js, React/Next.js, Node.js) with a heavy focus on real-time geospatial data.
+To solve this, VeggieMap provides a real-time, hyperlocal tracking platform. It leverages an interactive, high-performance map interface that broadcasts the live GPS coordinates and inventory status of mobile vendors directly to local buyers. By enforcing a hard **5km (5000m)** geospatial rendering limit for consumers and pushing instantaneous WebSocket updates, the platform guarantees that buyers only see immediately actionable data. The frontend locally optimizes client-side timers on a consistent **60,000ms (60s)** polling cycle where needed, preserving server bandwidth while ensuring that active location shifts are dispatched seamlessly with zero-latency Socket.io event propagation.
 
-### 1. Backend Architecture (Node.js & Express)
-The backend acts as the central hub for data persistence and real-time communication.
-
-*   **Database (MongoDB):**
-    *   **Geospatial Indexing:** Uses MongoDB's `2dsphere` index on the `Vendor` collection (`location` field) to perform efficient proximity searches (`$near`, `$geoWithin`).
-    *   **Models:**
-        *   `Vendor`: Stores profile, inventory (embedded menu), type (`static` vs `mobile`), and live location.
-        *   `Consumer`: Stores user preferences and favorites.
-        *   `SearchTag`: Optimizes search by indexing keywords related to vendors.
-*   **API Layer (Express.js):**
-    *   RESTful endpoints for Authentication (`/auth`), Vendor Management (`/vendor`), and Consumer Actions (`/consumer`).
-    *   Secure file uploads for shop images using `Multer`.
-*   **Real-Time Engine (Socket.io):**
-    *   **Geo-Room Partitioning:** To scale, the world is divided into "Geo-Rooms" (e.g., `geo-28-77` based on lat/trunc-lng). Users only receive updates from vendors in their current grid.
-    *   **Events:**
-        *   `vendor:location-update`: Mobile vendors push coordinates.
-        *   `vendor:location-move`: Broadcasts new coords to consumers in the room.
-        *   `vendor:online` / `disconnect`: Manages live status.
-
-### 2. Frontend Architecture (Next.js 16 & TypeScript)
-The frontend is a Progressive Web App (PWA) optimized for performance and mobile usage.
-
-*   **Framework:** Next.js 16 (App Router) for hybrid rendering (Server Components for SEO, Client Components for interactivity).
-*   **Map System:**
-    *   **Leaflet & React-Leaflet:** Renders the interactive map.
-    *   **Supercluster:** Handles marker clustering for performance when thousands of vendors are visible.
-    *   **Custom Icons:** Distinct markers for Static Shops (Vegetable/Store icon) vs. Mobile Hawkers (Rickshaw/Cart icon).
-*   **State Management:**
-    *   **Zustand:** Global client state (Map Center, Zoom, User Location, Selected Vendor).
-    *   **TanStack Query:** Server state management (caching vendor lists, favorites, and eliminating prop drilling).
-*   **Styling:** Tailwind CSS with Radix UI primitives for accessible, high-performance components.
-
----
-
-## � Real-Time Data Flow & WebSockets (Deep Dive)
-
-The core feature of VeggieMap is the ability to see moving hawkers in real-time. Here is exactly how data travels from a vendor's phone to a consumer's screen.
+## System Architecture
 
 ```mermaid
 graph TD
-    %% Actors
-    VendorMobile[📱 Mobile Vendor\n(Hawker)]
-    VendorStatic[🏪 Static Shop]
-    Consumer[🛒 Consumer User]
-
-    %% Backend System
-    subgraph Cloud Infrastructure
-        LB[Load Balancer / Nginx]
-        API[🚀 Backend API\n(Express + Socket.io)]
-        DB[(🍃 MongoDB\nGeo-Spatial Index)]
-    end
-
-    %% Flows
-    VendorMobile -->|Socket: location-update\n(Lat, Lng)| API
-    VendorStatic -->|REST: update-inventory| API
-    
-    API -->|Persist Location & Stock| DB
-    API -->|Query: Nearby Vendors| DB
-    
-    API -->|Socket Broadcast\n(Geo-Room: 'geo-28-77')| Consumer
-    
-    Consumer -->|REST: Get Initial Map| API
-    Consumer -->|Socket: Join Room| API
-
-    %% Styling
-    style VendorMobile fill:#ff9f43,stroke:#333,stroke-width:2px
-    style VendorStatic fill:#1dd1a1,stroke:#333,stroke-width:2px
-    style Consumer fill:#54a0ff,stroke:#333,stroke-width:2px
-    style API fill:#a29bfe,stroke:#333,stroke-width:2px
-    style DB fill:#55efc4,stroke:#333,stroke-width:2px
+    Client[Web Consumer/Vendor Client] -->|HTTPS| Frontend[Next.js App]
+    Frontend -->|REST APIs| Backend[Node/Express Server]
+    Client <-->|WebSocket w/ Socket.io| Backend
+    Backend -->|Mongoose ODM| Database[(MongoDB Atlas)]
+    Backend -->|Image Hosting| CD[(Cloudinary)]
 ```
 
-### 1. The Connection Handshake
-1.  **Client Initialization:** When a user (Vendor or Consumer) logs in, `SocketContext.tsx` initializes a Socket.io connection to the backend.
-2.  **Authentication:**
-    *   The client emits an `auth` event with their JWT token.
-    *   The server verifies the token, decodes the `userId`, and looks up the user in MongoDB.
-    *   **Server Logic:** The server assigns the socket a role (`vendor` or `consumer`) and stores it in an `activeClients` in-memory map.
-    *   **Success:** The server emits `auth:success`, and the client sets `isAuthenticated = true`.
+## Directory Structure
 
-### 2. The "Geo-Room" Strategy (Scalability)
-To prevent broadcasting every location update to every user (which would crash the server), we use **Spatial Partitioning**.
-*   **Logic:** The world is divided into 1x1 degree grids (approx. 111km x 111km).
-*   **Naming:** A grid at Lat 28.5, Lng 77.2 is named `geo-28-77`.
-*   **Joining:**
-    *   **Consumers:** When a consumer moves their map, they emit `consumer:join-room` with their center coordinates. The server calculates the grid and joins their socket to that room.
-    *   **Vendors:** Mobile vendors do not explicitly "join" a room to listen; they *broadcast* to the room matching their current GPS location.
+```text
+veggiemap-dev-main/
+├── Backend/
+│   ├── controllers/      # Route controllers (Auth, Consumer, Vendor, Admin)
+│   ├── middleware/       # JWT auth, error handling routines
+│   ├── models/           # Mongoose schemas (Vendor, Consumer, SearchTag)
+│   ├── routes/           # Express API route declarations
+│   └── server.js         # Entry point, Socket.io setup, and Express config
+│
+│
+└── client/
+    ├── src/
+    │   ├── app/          # Next.js App Router pages and layouts
+    │   ├── components/   # Reusable React components (Map, UI blocks)
+    │   ├── lib/          # Utility functions, API interceptors
+    │   └── hooks/        # Custom React hooks (e.g., useSocket, useGeolocation)
+    ├── public/           # Static assets
+    └── next.config.ts    # Next.js build and environment configuration
+```
 
-### 3. The Location Update Loop (The "Uber" Effect)
-This loop happens every few seconds for moving vendors:
+## API & Data Flow
+
+The core mechanics rely on geospatial queries (`$near`) triggered via REST endpoints, immediately followed by persistent, bidirectional WebSocket rooms for real-time state mutations. Continuous geolocation streams are optimized aggressively: while WebSocket signals propagate instantly to consumer viewports, physical database writes in MongoDB are throttled and debounced to **30,000ms (30s)** per mobile connection to prevent I/O bottlenecks.
 
 ```mermaid
 sequenceDiagram
-    participant Mobile as 📱 Vendor App
-    participant Server as 🚀 Socket Server
-    participant DB as 🍃 MongoDB
-    participant Consumer as 🛒 Consumer App
+    participant Vendor Client
+    participant Express Server
+    participant MongoDB
+    participant Consumer Client
 
-    Note over Mobile, Consumer: Continuous Location Tracking Loop
-
-    Mobile->>Mobile: GPS Change Detected
-    Mobile->>Server: emit("vendor:location-update", {lat, lng})
-    
-    Server->>Server: Verify Token & Role
-    
-    parallel Server Actions
-        Server->>DB: Update Vendor.location
-        and
-        Server->>Server: Calculate Geo-Room (e.g., "geo-28-77")
-    end
-    
-    Server->>Consumer: Broadcast to "geo-28-77": "vendor:location-move"
-    
-    Consumer->>Consumer: Update Local State (React Query)
-    Consumer->>Consumer: Animate Marker (Leaflet)
+    Vendor Client->>Express Server: Emit `vendor:location-update`
+    Express Server->>MongoDB: Update `currentLocation` (Throttled 30s limit)
+    Express Server->>Express Server: Calculate Grid (e.g., area_12_45)
+    Express Server->>Express Server: Emit `vendor:location-move` to room `area_12_45`
+    Express Server->>Consumer Client: Pushed UI Location Change
 ```
 
-1.  **Vendor Side (Mobile):**
-    *   `navigator.geolocation.watchPosition` detects a change.
-    *   Client emits `vendor:location-update` with `{ lat, lng }`.
-2.  **Server Side:**
-    *   Validates the socket is an authenticated vendor.
-    *   **Persist:** Updates `Vendor.location` in MongoDB (so fresh page loads see the new spot).
-    *   **Calculate Room:** Determines current Geo-Room (e.g., `geo-28-77`).
-    *   **Broadcast:** `io.to('geo-28-77').emit('vendor:location-move', data)`
-3.  **Consumer Side:**
-    *   Socket listener receives `vendor:location-move`.
-    *   **React Query / Zustand:** The local state for that specific vendor ID is updated.
-    *   **React Leaflet:** The marker smoothly animates to the new coordinate.
+### Core REST API Reference
 
-### 4. Handling Disconnections & Live Status
-*   **Heartbeat:** Socket.io maintains a heartbeat. If a vendor loses network or closes the app, the server detects a `disconnect` event.
-*   **Cleanup:**
-    *   **Mobile Vendors:** The server emits `vendor:removed` to the room, and the vendor's marker is immediately removed from consumer maps.
-    *   **Static Shops:** The server emits `vendor:status-update` with `{ isOnline: false }`, turning their marker gray/closed on the map.
+| Method | Endpoint                      | Description                                                                 |
+| :----- | :---------------------------- | :-------------------------------------------------------------------------- |
+| `POST` | `/api/auth/consumer/register` | Registers a new consumer and issues an HTTP-only JWT.                       |
+| `POST` | `/api/auth/vendor/login`      | Authenticates a vendor and returns profile/token payload.                   |
+| `GET`  | `/api/consumer/search`        | Performs a `$near` geospatial lookup, capped natively to a 5,000m radius.   |
+| `PUT`  | `/api/vendor/inventory`       | Upserts stock definitions and triggers a Cloudinary image sync if required. |
 
+### Core WebSocket Events
 
----
+| Event Name               | Direction        | Payload Description                                                                  |
+| :----------------------- | :--------------- | :----------------------------------------------------------------------------------- |
+| `vendor:location-update` | Client -> Server | Emits continuous `lat`/`lng` polling coordinates from a vendor device.               |
+| `consumer:join-room`     | Client -> Server | Connects the consumer to a geospatial grid room based on their viewport.             |
+| `vendor:location-move`   | Server -> Client | Broadcasts localized movement updates to all consumers in the geospatial room.       |
+| `inventory:updated`      | Server -> Client | Pushes instantaneous pricing and stock availability mutations to active map clients. |
 
-## �🚀 How It Works
+## Tech Stack
 
-### 🛒 Consumer Flow
-1.  **Geolocation:** On open, the app requests GPS permissions to center the map.
-2.  **Discovery:**
-    *   **Initial Load:** Fetches nearby vendors via REST API based on map bounds.
-    *   **Live Updates:** Connects to Socket.io and joins a specific "Geo-Room".
-3.  **Interaction:** Tapping a marker opens a `VendorCard` with menu items, prices, and "Navigate" button.
+- **Frontend**: Next.js, React, Tailwind CSS, Framer Motion (for DOM layout animation and 3D scrolling transforms)
+- **Backend**: Node.js, Express.js, Socket.io (for persistent, room-based event broadcasting)
+- **Auth & Security**: User authorization leverages JSON Web Tokens (hard-capped to exactly **30d** expiration), paired with industry-standard generic `bcrypt` utilizing precisely **10 salt rounds** for password encryption.
+- **Database**: MongoDB Atlas (Leveraging native `2dsphere` indexes and optimized `$near` geospacial pipelines)
+- **Storage**: Cloudinary (Off-server image CDN and on-the-fly transformations)
 
-### 🏪 Vendor Flow (Static)
-1.  **Registration:** Vendor signs up and sets their fixed shop location on a map.
-2.  **Inventory:** Manages "In-Stock" / "Out-of-Stock" status for vegetables via the Dashboard.
-3.  **Status:** Toggles "Online/Offline" to indicate shop opening hours.
+## Screens & User Interface
 
-### 🚲 Mobile Vendor Flow (The "Hawker" System)
-**Current Status:**
-*   Vendors with `vendorType: 'mobile'` are treated as moving entities.
-*   **Tracking:** When a mobile vendor goes "Online", the browser/app begins watching their GPS position (`navigator.geolocation.watchPosition`).
-*   **Broadcasting:** Updates are emitted to the server via `socket.emit('vendor:location-update')`.
-*   **Persistence:** The server updates the MongoDB document *and* immediately broadcasts the new location to relevant consumers, creating a "Uber-like" smooth movement effect on the consumer's map.
+![Hero Section Map UI](./Consumer%20Dashboard.png)
+_The consumer map UI showing hovering vendor carts_
 
----
+## Environment Variables
 
-## 🔮 Future Plans & Roadmap
+### Backend (`Backend/.env`)
 
-### 📱 Mobile Vendor App (Deep Dive)
-To truly empower hawkers (cart vendors), a dedicated mobile app is planned with the following capabilities:
+| Variable                | Description                                  | Example Value                           |
+| :---------------------- | :------------------------------------------- | :-------------------------------------- |
+| `MONGO_URI`             | MongoDB Atlas Connection String              | `mongodb+srv://user:pass@cluster0...`   |
+| `JWT_SECRET`            | Secret key for signing consumer/vendor JWTs. | `super_secret_jwt_key`                  |
+| `ADMIN_JWT_SECRET`      | Dedicated secret key for Admin panel access. | `super_secret_admin_key`                |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary account identifier.               | `dbxmyxyz`                              |
+| `CLOUDINARY_API_KEY`    | Cloudinary REST API Key.                     | `983719237412`                          |
+| `CLOUDINARY_API_SECRET` | Cloudinary REST Secret.                      | `ABC123xyz_def_GHI`                     |
+| `ALLOWED_ORIGINS`       | Comma-separated list for CORS validation.    | `http://localhost:3000,https://app.com` |
 
-1.  **Background Location Service:**
-    *   **Problem:** Browsers throttle GPS when the screen is off.
-    *   **Solution:** A React Native / Flutter app using interaction-free background location services. This allows the vendor to keep the phone in their pocket while the system tracks their cart's movement through neighborhoods.
-2.  **Battery Optimization:**
-    *   Smart tracking algorithms that reduce GPS polling frequency when the vendor stops moving (e.g., serving a customer).
-3.  **Route Analytics:**
-    *   Heatmaps showing where they got the most business previously.
-4.  **Vocals/Announcements:**
-    *   "Digital Bell": Consumers can get a push notification when their favorite tomato seller enters their street.
+### Frontend (`client/.env.local` / `.env.production`)
 
-### 🛠 Upcoming Additions
-1.  **Offline-First Architecture:**
-    *   Full implementation of `tanstack-query` persistence to load the map and last-known vendors instantly, even with patchy network.
-2.  **Payment Integration:**
-    *   UPI integration (PhonePe/Razorpay) for direct payments to vendors.
-3.  **Social Proof:**
-    *   Ratings and Reviews for vendors to build trust.
-4.  **Vendor Verification:**
-    *   Admin panel for verifying vendor KYC (Aadhar/FSSAI) to ensure safety.
+| Variable                  | Description                                 | Example Value               |
+| :------------------------ | :------------------------------------------ | :-------------------------- |
+| `NEXT_PUBLIC_API_URL`     | Base URL for Express REST routing.          | `http://localhost:5000/api` |
+| `NEXT_PUBLIC_SOCKET_URL`  | Base domain for `socket.io-client` binding. | `http://localhost:5000`     |
+| `NEXT_PUBLIC_BACKEND_URL` | Optional base origin config.                | `http://localhost:5000`     |
+| `NEXT_PUBLIC_ADMIN_PATH`  | Hashed or hidden route for Admin dashboard. | `/hidden-admin-panel`       |
 
----
+## Prerequisites
 
-## 📍 Current Status
-*   **Core Map:** ✅ Functional with Clustering and Custom Markers.
-*   **Real-time:** ✅ Semantic "Geo-Rooms" implemented for scalable socket broadcasting.
-*   **Dashboard:** ✅ Vendors can manage inventory and profile images.
-*   **Search:** ✅ Text-based search for products and shop names.
-*   **Favorites:** ✅ Consumers can save their favorite local vendors.
+- Node.js v18+
+- A MongoDB Atlas Account (or local MongoDB instance)
+- Git
+
+## Quick Start / Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/veggiemap-dev-main.git
+cd veggiemap-dev-main
+
+# 2. Start the Backend
+cd Backend
+npm install
+# Create .env with the variables described above
+npm run start
+
+# 3. Start the Frontend (New Terminal Window)
+cd ../client
+npm install
+# Ensure .env.local contains your frontend environment variables
+npm run dev
+```
+
+## Key Features
+
+- **Real-time Geospatial Tracking:** WebSockets broadcast vendor locations natively using in-memory Socket maps.
+- **Aggressive Query Pagination:** To guarantee O(1) performance and stable client rendering, the backend geospatial pipelines are hard-capped to aggregate only exactly **20** nearest tags at once.
+- **Hyperlocal Discovery:** Hard limit constraints lock geospatial `$near` lookups to exactly 5,000 meters.
+- **Transparent Pricing:** Inventory synchronization pushes live price tags directly to the consumer map.
+- **Advanced Landing UI:** Heavily optimized DOM structure using Framer Motion for scroll-linked 3D physics.
+
+## Deployment / Hosting
+
+- **Frontend:** Optimized natively for zero-config deployment on Vercel or Netlify.
+- **Backend:** Express & Socket.io architecture can be easily containerized via Docker and deployed on platforms like Render, Railway, AWS EC2, or DigitalOcean Droplets. The only requirement for the backend is ensuring the port binds properly and Socket.io origin constraints are handled. Ensure MongoDB Atlas IP Network Access is whitelisted (`0.0.0.0/0`) if deploying to non-static IP cloud platforms.
+
+## Relevant Future Scope / Optimizations
+
+1. **Redis Adapter for Socket.io:** The application currently relies on an in-memory `connectedVendors` Map. Implementing `@socket.io/redis-adapter` is essential for horizontal scaling across multiple load-balanced backend processes.
+2. **API Rate Limiting:** Implement `express-rate-limit` natively or via NGINX ingress to prevent brute-force attacks on the JWT authentication and intensive spatial search endpoints.
+3. **Compound Database Indexing:** Create compound indexes mapping `isOnline`, `vendorType`, and `currentLocation` to flatten the time complexity of chained filter aggregations.
