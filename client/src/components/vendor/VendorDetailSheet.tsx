@@ -132,41 +132,22 @@ export function VendorDetailSheet({
             </div>
 
             <div className="grid grid-cols-4 gap-3">
-              <Button
-                asChild
-                variant="outline"
-                className="flex flex-col h-16 py-0 px-0 gap-1.5 text-[11px] rounded-2xl border-zinc-200 dark:border-zinc-800 hover:border-green-600 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-500/10 transition-colors shadow-sm"
-                disabled={!vendor.phoneNumber}
-              >
+              <Button asChild variant="secondary" className={cn("flex flex-col h-[72px] py-0 px-0 gap-1.5 text-[11px] font-bold tracking-wide rounded-[20px] bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 border-0 shadow-sm transition-all active:scale-95", !vendor.phoneNumber && "opacity-50 pointer-events-none")}>
                 <a href={vendor.phoneNumber ? `tel:${vendor.phoneNumber}` : "#"}>
-                  <Phone className="w-5 h-5" />
-                  Call
+                  <Phone className="w-6 h-6 mb-0.5" /> Call
                 </a>
               </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="flex flex-col h-16 py-0 px-0 gap-1.5 text-[11px] rounded-2xl border-zinc-200 dark:border-zinc-800 hover:border-emerald-600 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors shadow-sm"
-                disabled={!vendor.phoneNumber}
-              >
+              <Button asChild variant="secondary" className={cn("flex flex-col h-[72px] py-0 px-0 gap-1.5 text-[11px] font-bold tracking-wide rounded-[20px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border-0 shadow-sm transition-all active:scale-95", !vendor.phoneNumber && "opacity-50 pointer-events-none")}>
                 <a href={vendor.phoneNumber ? `https://wa.me/${vendor.phoneNumber}?text=${encodeURIComponent(`Hello ${vendor.shopName || vendor.vendorName}, I saw your shop on VeggieMap and want to order.`)}` : "#"} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="w-5 h-5 text-emerald-500" />
-                  Chat
+                  <MessageCircle className="w-6 h-6 mb-0.5" /> Chat
                 </a>
               </Button>
-              <Button
-                variant="outline"
-                className="flex flex-col h-16 py-0 px-0 gap-1.5 text-[11px] rounded-2xl border-zinc-200 dark:border-zinc-800 hover:border-blue-600 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors shadow-sm"
-                onClick={handleDirections}
-                disabled={!vendor.location}
-              >
-                <Navigation className="w-5 h-5 text-blue-500" />
-                Map
+              <Button variant="secondary" className="flex flex-col h-[72px] py-0 px-0 gap-1.5 text-[11px] font-bold tracking-wide rounded-[20px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border-0 shadow-sm transition-all active:scale-95 disabled:opacity-50" onClick={handleDirections} disabled={!vendor.location}>
+                <Navigation className="w-6 h-6 mb-0.5" /> Map
               </Button>
-              <Button asChild className="flex flex-col h-16 py-0 px-0 gap-1.5 text-[11px] rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-sm transition-transform active:scale-95">
+              <Button asChild className="flex flex-col h-[72px] py-0 px-0 gap-1.5 text-[11px] font-bold tracking-wide rounded-[20px] bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white shadow-md transition-all active:scale-95">
                 <Link href={`/shop/${vendor.userId}`}>
-                  <Store className="w-5 h-5" />
-                  Shop
+                  <Store className="w-6 h-6 mb-0.5" /> Shop
                 </Link>
               </Button>
             </div>
@@ -177,28 +158,33 @@ export function VendorDetailSheet({
 
           {/* Menu Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between pointer-events-none">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Fresh Menu</h3>
-              <span className="text-xs font-semibold text-zinc-500 bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-md">{topItems.length} items</span>
+            <div className="flex items-center justify-between pointer-events-none mb-2">
+              <h3 className="text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Fresh Menu</h3>
+              <span className="text-sm font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-900/60 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-800">{topItems.length} items</span>
             </div>
 
             {topItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {topItems.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-center p-3 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm hover:border-green-200 transition-colors gap-4">
-                    <div className="w-20 h-20 bg-zinc-50 dark:bg-zinc-900 rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-zinc-100 dark:border-zinc-800/50">
+                  <div key={idx} className="group flex items-center p-3 rounded-[24px] border border-zinc-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-900/40 shadow-sm hover:shadow-md hover:border-emerald-500/30 transition-all gap-4 overflow-hidden relative">
+                    <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800/50 rounded-[18px] flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200/50 dark:border-zinc-700/50 relative">
                       {item.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.image} alt={item.productName} className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" />
+                        <img src={item.image} alt={item.productName} className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal transition-transform duration-500 group-hover:scale-110" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-500 flex items-center justify-center text-lg font-bold">
+                        <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-500 flex items-center justify-center text-xl font-bold">
                           {String(item.productName || "?")[0]}
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col flex-1">
-                      <div className="font-bold text-base text-zinc-900 dark:text-white leading-tight mb-1">{item.productName}</div>
-                      <div className="font-extrabold text-green-600 dark:text-green-400 text-lg tracking-tight">₹{item.pricePerKg} <span className="text-sm text-zinc-500 font-medium tracking-normal">/kg</span></div>
+                    <div className="flex flex-col flex-1 py-1 pr-2">
+                      <div className="font-bold text-lg text-zinc-900 dark:text-white leading-tight mb-2 line-clamp-2">{item.productName}</div>
+                      <div className="mt-auto">
+                        <span className="inline-flex items-baseline gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-200/50 dark:border-emerald-500/20">
+                          <span className="font-extrabold text-emerald-700 dark:text-emerald-400 text-base tracking-tight">₹{item.pricePerKg}</span>
+                          <span className="text-[11px] text-emerald-600/70 dark:text-emerald-400/70 font-semibold tracking-wider">/kg</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}

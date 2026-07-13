@@ -8,6 +8,7 @@ import { Plus, Trash2, Edit2, PackageOpen, Loader2, Sparkles, Search } from "luc
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import MenuImage from "@/components/ui/MenuImage";
 
@@ -161,25 +162,30 @@ export default function MenuPage() {
 
     return (
         <div className="space-y-6 pb-24 md:pb-0 font-sans">
-            <div className="flex items-center justify-between px-2">
+            <div className="flex items-center justify-between px-2 mb-6">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Manage Menu</h2>
-                    <p className="text-base text-zinc-500 font-medium">Add items and update stock.</p>
+                    <h2 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter">Manage Menu</h2>
+                    <p className="text-lg text-zinc-500 font-bold mt-1">Add items and update stock.</p>
                 </div>
             </div>
 
             {/* Mobile Fixed Add Button (Massive FAB) */}
             <Button
                 onClick={openAddDialog}
-                className="md:hidden fixed bottom-24 right-5 w-16 h-16 rounded-[24px] bg-green-600 hover:bg-green-700 text-white shadow-[0_10px_25px_rgba(22,163,74,0.4)] z-40 flex items-center justify-center p-0 transition-transform active:scale-95"
+                className="md:hidden fixed bottom-24 right-5 w-16 h-16 rounded-[24px] bg-green-600 hover:bg-green-700 text-white shadow-xl shadow-green-600/40 z-40 flex items-center justify-center p-0 transition-transform active:scale-95"
             >
                 <Plus className="w-8 h-8" />
             </Button>
 
             {/* Desktop Add Button */}
-            <Button onClick={openAddDialog} className="hidden md:flex bg-green-600 hover:bg-green-700 text-white gap-2 font-bold py-6 px-6 rounded-2xl shadow-lg shadow-green-600/20 text-lg w-full max-w-sm mb-8">
-                <Plus className="w-6 h-6" /> Add New Product
-            </Button>
+            <div className="hidden md:flex px-2 mb-8">
+                <Button onClick={openAddDialog} className="bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white gap-3 font-extrabold py-7 px-8 rounded-[24px] shadow-xl shadow-green-600/20 text-lg hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    <div className="p-1.5 bg-white/20 rounded-full">
+                        <Plus className="w-6 h-6" />
+                    </div>
+                    Add New Product
+                </Button>
+            </div>
 
             {/* Add/Edit Dialog using Vaul for Mobile or Dialog for Desktop */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -283,8 +289,24 @@ export default function MenuPage() {
 
             {/* Menu List */}
             {isLoading ? (
-                <div className="flex justify-center p-12">
-                    <Loader2 className="w-10 h-10 animate-spin text-green-600" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-2 pb-6">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/60 p-5 rounded-[32px] flex flex-col gap-5">
+                            <div className="flex items-center gap-5">
+                                <Skeleton className="w-[100px] h-[100px] rounded-[24px]" />
+                                <div className="flex-1 space-y-3">
+                                    <Skeleton className="h-6 w-3/4 rounded-lg" />
+                                    <Skeleton className="h-8 w-1/2 rounded-xl" />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 w-full pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
+                                <Skeleton className="flex-1 h-[52px] rounded-[18px]" />
+                                <Skeleton className="flex-1 h-[52px] rounded-[18px]" />
+                                <Skeleton className="h-[52px] w-[52px] rounded-[18px]" />
+                                <Skeleton className="h-[52px] w-[52px] rounded-[18px]" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : menu.length === 0 ? (
                 <div className="text-center py-24 bg-zinc-50 dark:bg-zinc-950 rounded-[32px] border-2 border-dashed border-zinc-200 dark:border-zinc-800 mx-2">
@@ -295,34 +317,35 @@ export default function MenuPage() {
                     <p className="text-zinc-500 font-medium">Tap the + button to add products.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 px-2 pb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-2 pb-6">
                     {menu.map((item) => (
-                        <div key={item._id} className="bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800 p-4 shrink-0 rounded-[32px] shadow-sm flex flex-col gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="w-[88px] h-[88px] rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex-shrink-0 overflow-hidden relative">
-                                    <MenuImage src={item.image} alt={item.productName} category={item.category} />
+                        <div key={item._id} className="group bg-white dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/60 p-5 shrink-0 rounded-[32px] shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all flex flex-col gap-5">
+                            <div className="flex items-center gap-5">
+                                <div className="w-[100px] h-[100px] rounded-[24px] bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50 flex-shrink-0 overflow-hidden relative">
+                                    <MenuImage src={item.image} alt={item.productName} category={item.category} className="transition-transform duration-500 group-hover:scale-110" />
                                     {item.itemStatus === 'out-of-stock' && (
                                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                                            <span className="text-[10px] font-bold text-white uppercase tracking-widest bg-black px-2 py-1 rounded-full shadow-md">Sold Out</span>
+                                            <span className="text-[10px] font-black text-white uppercase tracking-widest bg-black/50 border border-white/20 px-3 py-1.5 rounded-full shadow-lg">Sold Out</span>
                                         </div>
                                     )}
                                 </div>
                                 <div className="flex-1 min-w-0 pr-1">
-                                    <h3 className="font-bold text-xl text-zinc-900 dark:text-white truncate mb-1 leading-tight">{item.productName}</h3>
-                                    <div className="font-extrabold text-green-600 dark:text-green-500 text-2xl tracking-tight leading-none mb-1">
-                                        ₹{item.pricePerKg} <span className="text-[13px] text-zinc-400 tracking-normal font-semibold">/kg</span>
+                                    <h3 className="font-extrabold text-2xl text-zinc-900 dark:text-white truncate mb-2 leading-tight">{item.productName}</h3>
+                                    <div className="inline-flex items-baseline gap-1 bg-green-50 dark:bg-green-500/10 px-3 py-1 rounded-xl border border-green-200/50 dark:border-green-500/20">
+                                        <span className="font-black text-green-700 dark:text-green-400 text-2xl tracking-tight leading-none">₹{item.pricePerKg}</span>
+                                        <span className="text-[12px] text-green-600/70 dark:text-green-400/70 uppercase font-bold tracking-wider">/kg</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Action Row - Massive Split Buttons for Stock Control */}
-                            <div className="flex gap-2 w-full pt-1 border-t border-zinc-100 dark:border-zinc-900/50">
+                            <div className="flex gap-3 w-full pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
                                 <Button
                                     onClick={() => toggleStatus(item, "in-stock")}
                                     variant={item.itemStatus === 'in-stock' ? "default" : "outline"}
                                     className={cn(
-                                        "flex-1 h-12 rounded-xl text-sm font-bold shadow-none",
-                                        item.itemStatus === 'in-stock' ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none dark:bg-emerald-500/20 dark:text-emerald-400" : "text-zinc-500 border-zinc-200 dark:border-zinc-800 bg-transparent"
+                                        "flex-1 h-[52px] rounded-[18px] text-sm font-extrabold shadow-none transition-all active:scale-95",
+                                        item.itemStatus === 'in-stock' ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none dark:bg-emerald-500/20 dark:text-emerald-400" : "text-zinc-500 border-zinc-200 dark:border-zinc-800 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800"
                                     )}
                                 >
                                     In Stock
@@ -331,16 +354,16 @@ export default function MenuPage() {
                                     onClick={() => toggleStatus(item, "out-of-stock")}
                                     variant={item.itemStatus === 'out-of-stock' ? "default" : "outline"}
                                     className={cn(
-                                        "flex-1 h-12 rounded-xl text-sm font-bold shadow-none",
-                                        item.itemStatus === 'out-of-stock' ? "bg-red-100 text-red-800 hover:bg-red-200 border-none dark:bg-red-500/20 dark:text-red-400" : "text-zinc-500 border-zinc-200 dark:border-zinc-800 bg-transparent"
+                                        "flex-1 h-[52px] rounded-[18px] text-sm font-extrabold shadow-none transition-all active:scale-95",
+                                        item.itemStatus === 'out-of-stock' ? "bg-red-100 text-red-800 hover:bg-red-200 border-none dark:bg-red-500/20 dark:text-red-400" : "text-zinc-500 border-zinc-200 dark:border-zinc-800 bg-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800"
                                     )}
                                 >
                                     Sold Out
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-12 w-12 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900" onClick={() => openEditDialog(item)}>
-                                    <Edit2 className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+                                <Button size="icon" variant="ghost" className="h-[52px] w-[52px] rounded-[18px] bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all active:scale-95" onClick={() => openEditDialog(item)}>
+                                    <Edit2 className="w-5 h-5" />
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-12 w-12 rounded-xl hover:bg-red-50 text-red-400 hover:text-red-600 dark:hover:bg-red-950/30" onClick={() => confirmDelete(item)}>
+                                <Button size="icon" variant="ghost" className="h-[52px] w-[52px] rounded-[18px] bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-all active:scale-95" onClick={() => confirmDelete(item)}>
                                     <Trash2 className="w-5 h-5" />
                                 </Button>
                             </div>

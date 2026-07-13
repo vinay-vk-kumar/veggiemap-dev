@@ -259,14 +259,14 @@ export default function ShopPage() {
                                 {category === 'vegetable' ? '🥦 Fresh Vegetables' : category === 'fruit' ? '🍎 Fresh Fruits' : '📦 Others'}
                             </h2>
 
-                            <div className="grid grid-cols-1 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {groupedMenu[category].map((item) => (
                                     <div key={item._id} className={cn(
-                                        "group bg-white dark:bg-zinc-900 p-3 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex gap-4 transition-all hover:scale-[1.01] active:scale-[0.99]",
+                                        "group bg-white dark:bg-zinc-900/60 p-4 rounded-[28px] shadow-sm border border-zinc-200 dark:border-zinc-800/60 flex gap-5 transition-all hover:shadow-md hover:border-emerald-500/30 active:scale-[0.98]",
                                         item.itemStatus === 'out-of-stock' && "opacity-60 grayscale"
                                     )}>
-                                        <div className="relative w-28 h-28 bg-zinc-50 dark:bg-zinc-800 rounded-xl overflow-hidden flex-shrink-0 border border-zinc-100 dark:border-zinc-800">
-                                            <MenuImage src={item.image} alt={item.productName} category={item.category} />
+                                        <div className="relative w-32 h-32 bg-zinc-50 dark:bg-zinc-800/50 rounded-[22px] overflow-hidden flex-shrink-0 border border-zinc-100 dark:border-zinc-800/50">
+                                            <MenuImage src={item.image} alt={item.productName} category={item.category} className="transition-transform duration-500 group-hover:scale-110" />
                                             {item.itemStatus === 'out-of-stock' && (
                                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[1px]">
                                                     <span className="text-xs font-bold text-white uppercase tracking-wider border border-white/30 px-2 py-1 rounded-full bg-black/30">
@@ -276,18 +276,16 @@ export default function ShopPage() {
                                             )}
                                         </div>
 
-                                        <div className="flex-1 min-w-0 flex flex-col py-1">
-                                            <div className="flex justify-between items-start gap-2">
-                                                <h3 className="font-bold text-zinc-900 dark:text-white text-lg truncate leading-tight">
-                                                    {item.productName}
-                                                </h3>
-                                            </div>
+                                        <div className="flex-1 min-w-0 flex flex-col py-2 pr-2">
+                                            <h3 className="font-extrabold text-zinc-900 dark:text-white text-xl line-clamp-2 leading-tight mb-3">
+                                                {item.productName}
+                                            </h3>
 
-                                            <div className="mt-auto flex items-end justify-between">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-2xl font-bold text-zinc-900 dark:text-white">₹{item.pricePerKg}</span>
-                                                    <span className="text-sm font-medium text-zinc-400">/ kg</span>
-                                                </div>
+                                            <div className="mt-auto">
+                                                <span className="inline-flex items-baseline gap-1 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-200/50 dark:border-emerald-500/20">
+                                                    <span className="font-black text-emerald-700 dark:text-emerald-400 text-2xl tracking-tight">₹{item.pricePerKg}</span>
+                                                    <span className="text-[13px] text-emerald-600/70 dark:text-emerald-400/70 font-bold uppercase tracking-wider">/kg</span>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

@@ -195,25 +195,25 @@ export default function DashboardOverview() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
                 className={cn(
-                    "relative overflow-hidden rounded-[32px] p-8 md:p-10 transition-all duration-500 shadow-xl",
+                    "relative overflow-hidden rounded-[36px] p-8 md:p-12 transition-all duration-500",
                     isOnline
-                        ? "bg-emerald-600 text-white"
-                        : "bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white"
+                        ? "bg-gradient-to-br from-emerald-500 via-emerald-600 to-green-700 text-white shadow-2xl shadow-emerald-600/30 border border-emerald-400/30"
+                        : "bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 shadow-xl text-zinc-900 dark:text-white backdrop-blur-xl"
                 )}
             >
                 <div className="relative z-10 flex flex-col items-center justify-center gap-6 text-center">
                     <div className={cn(
-                        "p-5 rounded-2xl transition-all duration-500",
-                        isOnline ? "bg-white/20 shadow-inner backdrop-blur-md" : "bg-zinc-100 dark:bg-zinc-800"
+                        "p-5 rounded-[24px] transition-all duration-500 ring-4",
+                        isOnline ? "bg-white/20 backdrop-blur-xl ring-white/20 shadow-[inset_0_0_20px_rgba(255,255,255,0.2)]" : "bg-zinc-100 dark:bg-zinc-800 ring-zinc-50 dark:ring-zinc-900/50"
                     )}>
-                        <Store className={cn("w-12 h-12 md:w-16 md:h-16", isOnline ? "text-white drop-shadow-md" : "text-zinc-400")} />
+                        <Store className={cn("w-12 h-12 md:w-16 md:h-16 transition-all duration-500", isOnline ? "text-white drop-shadow-lg scale-110" : "text-zinc-400")} />
                     </div>
 
                     <div>
                         <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-2">
                             {isOnline ? "You are Online" : "You are Offline"}
                         </h3>
-                        <p className={cn("text-base md:text-xl font-medium", isOnline ? "text-emerald-100" : "text-zinc-500")}>
+                        <p className={cn("text-base md:text-xl font-bold", isOnline ? "text-emerald-100" : "text-zinc-500")}>
                             {isOnline
                                 ? "Customers can find you on the map!"
                                 : "Turn on to start selling."}
@@ -222,21 +222,22 @@ export default function DashboardOverview() {
 
                     <div className="mt-4 flex flex-col items-center gap-3">
                         {/* Massive Toggle for Accessibility */}
-                        <div className="scale-150 transform origin-center">
+                        <div className="scale-[1.75] transform origin-center my-2 transition-transform active:scale-[1.6]">
                             <Switch
                                 checked={isOnline}
                                 onCheckedChange={toggleOnlineStatus}
                                 disabled={isLoading}
                                 className={cn(
-                                    "data-[state=checked]:bg-white",
+                                    "data-[state=checked]:bg-white shadow-inner",
                                     "data-[state=unchecked]:bg-zinc-200 dark:data-[state=unchecked]:bg-zinc-700 h-6 w-11"
                                 )}
                                 thumbClassName={cn(
-                                    isOnline ? "bg-emerald-600 shadow-emerald-900/50" : "bg-white shadow-sm"
+                                    "transition-all",
+                                    isOnline ? "bg-emerald-600 shadow-sm" : "bg-white shadow-md"
                                 )}
                             />
                         </div>
-                        <span className={cn("text-xs font-bold tracking-widest uppercase mt-4", isOnline ? "text-emerald-200" : "text-zinc-400")}>
+                        <span className={cn("text-xs font-black tracking-widest uppercase mt-5", isOnline ? "text-emerald-200" : "text-zinc-400")}>
                             {isLoading ? "Updating..." : "Tap to Switch"}
                         </span>
                     </div>
@@ -246,42 +247,48 @@ export default function DashboardOverview() {
                 {isOnline && (
                     <motion.div
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.2 }}
+                        animate={{ opacity: 0.15 }}
                         transition={{ duration: 1 }}
-                        className="absolute -right-20 -bottom-20 w-80 h-80 bg-white rounded-full blur-[80px]"
+                        className="absolute -right-20 -bottom-20 w-96 h-96 bg-white rounded-full blur-[100px]"
                     />
                 )}
             </motion.div>
 
             {/* Hoverable Stats Section */}
             <div>
-                <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-4 px-2 font-outfit tracking-tight">Store Activity</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white dark:bg-zinc-950 p-6 rounded-[24px] border border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3 hover:scale-[1.02] hover:shadow-xl transition-all cursor-default">
-                        <div className="p-3 bg-blue-50 dark:bg-blue-950/50 w-fit rounded-2xl text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50">
-                            <Eye className="w-6 h-6" />
+                <h3 className="text-2xl font-extrabold text-zinc-900 dark:text-white mb-5 px-2 tracking-tight">Store Activity</h3>
+                <div className="grid grid-cols-2 gap-5">
+                    <div className="group bg-white dark:bg-zinc-900/60 p-6 rounded-[32px] border border-zinc-200/80 dark:border-zinc-800/60 shadow-sm hover:shadow-xl hover:border-blue-500/30 dark:hover:border-blue-500/30 transition-all cursor-default relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Eye className="w-32 h-32 text-blue-500 -mr-10 -mt-10 rotate-12" />
                         </div>
-                        <div className="mt-2">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-500/10 w-fit rounded-[20px] text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20 relative z-10 transition-transform group-hover:scale-110">
+                            <Eye className="w-7 h-7" />
+                        </div>
+                        <div className="mt-4 relative z-10">
                             {isStatsLoading ? (
-                                <Skeleton className="h-10 w-20" />
+                                <Skeleton className="h-10 w-20 rounded-xl" />
                             ) : (
-                                <p className="text-4xl font-extrabold text-zinc-900 dark:text-white">{stats.views}</p>
+                                <p className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter">{stats.views}</p>
                             )}
-                            <p className="text-sm text-zinc-500 font-semibold mt-1">Profile Views</p>
+                            <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-2">Profile Views</p>
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-zinc-950 p-6 rounded-[24px] border border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col gap-3 hover:scale-[1.02] hover:shadow-xl transition-all cursor-default">
-                        <div className="p-3 bg-purple-50 dark:bg-purple-950/50 w-fit rounded-2xl text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/50">
-                            <MousePointerClick className="w-6 h-6" />
+                    <div className="group bg-white dark:bg-zinc-900/60 p-6 rounded-[32px] border border-zinc-200/80 dark:border-zinc-800/60 shadow-sm hover:shadow-xl hover:border-purple-500/30 dark:hover:border-purple-500/30 transition-all cursor-default relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Store className="w-32 h-32 text-purple-500 -mr-10 -mt-10 rotate-12" />
                         </div>
-                        <div className="mt-2">
+                        <div className="p-4 bg-purple-50 dark:bg-purple-500/10 w-fit rounded-[20px] text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20 relative z-10 transition-transform group-hover:scale-110">
+                            <Store className="w-7 h-7" />
+                        </div>
+                        <div className="mt-4 relative z-10">
                             {isStatsLoading ? (
-                                <Skeleton className="h-10 w-16" />
+                                <Skeleton className="h-10 w-16 rounded-xl" />
                             ) : (
-                                <p className="text-4xl font-extrabold text-zinc-900 dark:text-white">{stats.totalItems}</p>
+                                <p className="text-5xl font-black text-zinc-900 dark:text-white tracking-tighter">{stats.totalItems}</p>
                             )}
-                            <p className="text-sm text-zinc-500 font-semibold mt-1">Menu Items</p>
+                            <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-2">Menu Items</p>
                         </div>
                     </div>
                 </div>
@@ -289,28 +296,28 @@ export default function DashboardOverview() {
 
             {/* Massive Easy-Tap Action Buttons */}
             <div>
-                <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-4 px-2 font-outfit tracking-tight">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Link href="/dashboard/menu" className="bg-white dark:bg-zinc-950 p-6 rounded-[24px] border-2 border-zinc-200/60 dark:border-zinc-800/60 flex items-center gap-5 hover:border-emerald-500 hover:shadow-lg dark:hover:border-emerald-500 transition-all group active:scale-[0.98]">
-                        <div className="p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/30 transition-colors">
-                            <Store className="w-8 h-8 text-zinc-600 dark:text-zinc-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
+                <h3 className="text-2xl font-extrabold text-zinc-900 dark:text-white mb-5 px-2 tracking-tight">Quick Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Link href="/dashboard/menu" className="bg-white dark:bg-zinc-900/80 p-6 rounded-[32px] border border-zinc-200/80 dark:border-zinc-800/80 flex items-center gap-5 hover:border-emerald-500/50 hover:shadow-xl dark:hover:border-emerald-500/50 transition-all group active:scale-[0.98]">
+                        <div className="p-5 bg-zinc-50 dark:bg-zinc-800/50 rounded-[24px] border border-zinc-100 dark:border-zinc-700/50 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10 group-hover:border-emerald-200 dark:group-hover:border-emerald-500/20 transition-colors">
+                            <Edit className="w-8 h-8 text-zinc-600 dark:text-zinc-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
                         </div>
                         <div className="flex-1">
-                            <h4 className="text-xl font-bold text-zinc-900 dark:text-white font-outfit">Update Menu</h4>
-                            <p className="text-sm font-medium text-zinc-500 mt-1">Change prices or stock</p>
+                            <h4 className="text-2xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Update Menu</h4>
+                            <p className="text-sm font-bold text-zinc-500 mt-1">Change prices or stock</p>
                         </div>
-                        <ArrowRight className="w-6 h-6 text-zinc-300 dark:text-zinc-700 group-hover:text-emerald-500 transition-colors" />
+                        <ArrowRight className="w-7 h-7 text-zinc-300 dark:text-zinc-700 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
                     </Link>
 
-                    <button onClick={handleShare} className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-[24px] shadow-lg flex items-center gap-5 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-left group">
-                        <div className="p-4 bg-white/20 whitespace-pre backdrop-blur-md rounded-2xl border border-white/20">
+                    <button onClick={handleShare} className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-[32px] shadow-xl shadow-emerald-600/20 border border-emerald-400/30 flex items-center gap-5 hover:shadow-2xl hover:shadow-emerald-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-left group">
+                        <div className="p-5 bg-white/20 backdrop-blur-md rounded-[24px] border border-white/20">
                             <Share2 className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
                         </div>
                         <div className="flex-1">
-                            <h4 className="text-xl font-bold text-white tracking-tight font-outfit">Share Shop</h4>
-                            <p className="text-sm font-medium text-emerald-100 mt-1">Send your link on WhatsApp</p>
+                            <h4 className="text-2xl font-extrabold text-white tracking-tight">Share Shop</h4>
+                            <p className="text-sm font-bold text-emerald-100 mt-1">Send link on WhatsApp</p>
                         </div>
-                        <ArrowRight className="w-6 h-6 text-emerald-100 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-7 h-7 text-emerald-100 group-hover:translate-x-1 transition-transform" />
                     </button>
                 </div>
             </div>
