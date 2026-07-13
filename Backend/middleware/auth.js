@@ -39,12 +39,20 @@ const protect = (req, res, next) => {
 const vendorOnly = async (req, res, next) => {
     try {
         const vendor = await Vendor.findOne({ userId: req.userId });
-        if (vendor) {
-            req.vendor = vendor;
-            next();
-        } else {
+        if (!vendor) {
             return res.status(403).json({ message: 'Access denied, user is not a registered vendor' });
         }
+        
+        // Enforce Profile Completion (e.g. for Google Signup vendors)
+        if (!vendor.phoneNumber || !vendor.vendorType) {
+            return res.status(403).json({ 
+                message: 'Profile incomplete. Please complete your vendor registration.',
+                requiresCompletion: true 
+            });
+        }
+
+        req.vendor = vendor;
+        next();
     } catch (error) {
         console.error('Vendor Access Error:', error.message);
         return res.status(500).json({ message: 'Server error during vendor check' });

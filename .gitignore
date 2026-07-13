@@ -52,3 +52,4 @@ uploads/
 */uploads/
 Backend/uploads/
 Backend/seed.js
+Backend/checkUser.js

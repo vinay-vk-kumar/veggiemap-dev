@@ -11,7 +11,16 @@ const consumerSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: function() { return this.authProvider === 'local'; }
+    },
+    authProvider: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local'
+    },
+    isEmailVerified: {
+        type: Boolean,
+        default: false
     },
 
     // User Reference
@@ -37,8 +46,8 @@ const consumerSchema = new mongoose.Schema({
 
 // --- Middleware: Hash Password before saving ---
 consumerSchema.pre('save', async function (next) {
-    // Only hash if the password field is being modified
-    if (!this.isModified('password')) {
+    // Only hash if the password field is being modified and exists
+    if (!this.isModified('password') || !this.password) {
         return next();
     }
 

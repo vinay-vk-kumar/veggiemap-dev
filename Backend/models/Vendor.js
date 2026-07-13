@@ -36,7 +36,16 @@ const vendorSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: function() { return this.authProvider === 'local'; }
+    },
+    authProvider: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local'
+    },
+    isEmailVerified: {
+        type: Boolean,
+        default: false
     },
 
     // Authentication Reference
@@ -55,7 +64,6 @@ const vendorSchema = new mongoose.Schema({
     deliveryAvailable: { type: Boolean, default: false }, // NEW: Home Delivery Capability
     vendorType: {
         type: String,
-        required: true,
         enum: ['static', 'mobile']
     },
     shopImage: { type: String, trim: true }, // NEW: Shop Logo/Image URL
@@ -72,12 +80,10 @@ const vendorSchema = new mongoose.Schema({
         type: {
             type: String, // Must be 'Point' for GeoJSON Point type
             enum: ['Point'],
-            required: true,
             default: 'Point'
         },
         coordinates: {
             type: [Number], // Array of [longitude, latitude]
-            required: true,
             // index: '2dsphere' // This creates the special geospatial index
         }
     }

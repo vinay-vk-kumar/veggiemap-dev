@@ -23,6 +23,12 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<"profile" | "location" | "security">("profile");
     const [isLoading, setIsLoading] = useState(false);
 
+    // --- Email Change State ---
+    const [isChangingEmail, setIsChangingEmail] = useState(false);
+    const [newEmail, setNewEmail] = useState("");
+    const [emailOtp, setEmailOtp] = useState("");
+    const [emailStep, setEmailStep] = useState<1 | 2>(1);
+
 
     // --- Profile State ---
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -117,6 +123,46 @@ export default function SettingsPage() {
         }
     };
 
+    const handleSendEmailOTP = async () => {
+        if (!newEmail || newEmail === user?.email) {
+            toast.error("Please enter a different new email address");
+            return;
+        }
+        setIsLoading(true);
+        try {
+            await api.post("/auth/otp/send", { email: newEmail, purpose: "change-email" });
+            toast.success("OTP sent to your new email");
+            setEmailStep(2);
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to send OTP");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifyEmailOTP = async () => {
+        if (!emailOtp || emailOtp.length < 6) {
+            toast.error("Invalid OTP");
+            return;
+        }
+        setIsLoading(true);
+        try {
+            await api.put("/vendor/settings/email", { newEmail, otp: emailOtp });
+            updateUser({ ...user, email: newEmail });
+            setProfile({ ...profile, email: newEmail });
+            setInitialProfile({ ...initialProfile, email: newEmail });
+            toast.success("Email updated successfully!");
+            setIsChangingEmail(false);
+            setEmailStep(1);
+            setNewEmail("");
+            setEmailOtp("");
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || "Failed to verify OTP");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleLocationSave = async (lat: number, lng: number) => {
         try {
             await api.put("/vendor/settings/location", { coordinates: [lng, lat] });
@@ -170,8 +216,47 @@ export default function SettingsPage() {
 
 
             {/* PROFILE TAB */}
-            {activeTab === "profile" && (
-                <form onSubmit={handleProfileUpdate} className="space-y-6 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 relative shadow-sm">
+            {activeTab === "profile" && isChangingEmail && (
+                <div className="space-y-6 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm animate-in fade-in zoom-in-95 duration-200">
+                    <div>
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Change Email</h3>
+                        <p className="text-sm text-zinc-500">Verify your new email address to update it.</p>
+                    </div>
+
+                    {emailStep === 1 ? (
+                        <div className="space-y-4 max-w-sm">
+                            <div>
+                                <Label className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-2 block">New Email Address</Label>
+                                <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} type="email" placeholder="new@example.com" className="h-12" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <Button disabled={isLoading} onClick={handleSendEmailOTP} className="bg-green-600 hover:bg-green-700 text-white">
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                    Send OTP
+                                </Button>
+                                <Button variant="ghost" onClick={() => { setIsChangingEmail(false); setNewEmail(""); }}>Cancel</Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 max-w-sm">
+                            <div>
+                                <Label className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-2 block">Enter OTP sent to {newEmail}</Label>
+                                <Input value={emailOtp} onChange={(e) => setEmailOtp(e.target.value)} placeholder="------" maxLength={6} className="tracking-[0.5em] font-mono text-center h-12" />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <Button disabled={isLoading} onClick={handleVerifyEmailOTP} className="bg-green-600 hover:bg-green-700 text-white">
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                    Verify & Update
+                                </Button>
+                                <Button variant="ghost" onClick={() => setEmailStep(1)}>Back</Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === "profile" && !isChangingEmail && (
+                <form onSubmit={handleProfileUpdate} className="space-y-6 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 relative shadow-sm animate-in fade-in duration-300">
 
                     {/* Header with Edit Action */}
                     <div className="flex justify-between items-start border-b border-zinc-100 dark:border-zinc-800 pb-4">
@@ -306,15 +391,15 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <Label className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Email</Label>
                                 {isEditingProfile ? (
-                                    <Input
-                                        value={profile.email}
-                                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                                        className="border-zinc-200 dark:border-zinc-700 focus:ring-green-500/20 focus:border-green-500 transition-all bg-zinc-50 dark:bg-zinc-800/50"
-                                        placeholder="Email Address"
-                                    />
+                                    <div className="flex items-center justify-between py-1.5 px-4 border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 rounded-[16px]">
+                                        <span className="text-zinc-600 dark:text-zinc-400 font-medium text-sm truncate mr-4">{user?.email}</span>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsChangingEmail(true)} className="h-8 text-xs font-bold text-green-600 border-green-200 hover:bg-green-50 dark:border-green-900/50 dark:hover:bg-green-900/20">
+                                            Change
+                                        </Button>
+                                    </div>
                                 ) : (
                                     <div className="text-zinc-900 dark:text-white font-medium text-base py-2">
-                                        {profile.email || <span className="text-zinc-400 italic">Not set</span>}
+                                        {user?.email || <span className="text-zinc-400 italic">Not set</span>}
                                     </div>
                                 )}
                             </div>
@@ -424,28 +509,31 @@ export default function SettingsPage() {
             {activeTab === "security" && (
                 <form onSubmit={handlePasswordUpdate} className="max-w-md space-y-6 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800">
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label className="text-xs font-semibold uppercase text-zinc-500">Current Password</Label>
-                            <div className="relative">
-                                <Input
-                                    type={showPasswords.current ? "text" : "password"}
-                                    value={security.currentPassword}
-                                    onChange={(e) => setSecurity({ ...security, currentPassword: e.target.value })}
-                                    required
-                                    placeholder="Enter current password"
-                                    className="h-11 pr-10"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                                >
-                                    {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-4" />
+                        {user?.hasPassword !== false && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold uppercase text-zinc-500">Current Password</Label>
+                                    <div className="relative">
+                                        <Input
+                                            type={showPasswords.current ? "text" : "password"}
+                                            value={security.currentPassword}
+                                            onChange={(e) => setSecurity({ ...security, currentPassword: e.target.value })}
+                                            required
+                                            placeholder="Enter current password"
+                                            className="h-11 pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                        >
+                                            {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-4" />
+                            </>
+                        )}
 
                         <div className="space-y-2">
                             <Label className="text-xs font-semibold uppercase text-zinc-500">New Password</Label>

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { protect } = require('../middleware/auth');
 
 // --- Configure Cloudinary ---
 // These values come from your .env file / Render environment variables
@@ -40,8 +41,8 @@ const upload = multer({
 
 // @route   POST /api/upload
 // @desc    Upload an image file to Cloudinary
-// @access  Public
-router.post('/', upload.single('image'), (req, res) => {
+// @access  Private
+router.post('/', protect, upload.single('image'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });

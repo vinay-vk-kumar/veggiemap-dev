@@ -19,8 +19,11 @@ router.put('/profile', protect, vendorOnly, async (req, res) => {
         if (phoneNumber) updateData.phoneNumber = phoneNumber;
         if (businessHours) updateData.businessHours = businessHours;
         if (typeof deliveryAvailable !== 'undefined') updateData.deliveryAvailable = deliveryAvailable;
-        if (email) updateData.email = email;
         if (typeof shopImage !== 'undefined') updateData.shopImage = shopImage;
+
+        if (email && email !== req.vendor.email) {
+            return res.status(400).json({ message: 'Email cannot be updated directly. Please use the secure email change process.' });
+        }
 
         const updatedVendor = await Vendor.findByIdAndUpdate(
             vendorId,
@@ -37,6 +40,58 @@ router.put('/profile', protect, vendorOnly, async (req, res) => {
     } catch (error) {
         console.error("Profile Update Error:", error);
         res.status(500).json({ message: 'Server error updating profile', error: error.message });
+    }
+});
+
+// @route   PUT /api/vendor/settings/email
+// @desc    Update email after OTP verification
+// @access  Private (Vendor)
+router.put('/email', protect, vendorOnly, async (req, res) => {
+    try {
+        const { newEmail, otp } = req.body;
+        const vendorId = req.vendor._id;
+
+        if (!newEmail || !otp) return res.status(400).json({ message: 'New email and OTP are required.' });
+
+        // Check if email is already taken
+        const existingVendor = await Vendor.findOne({ email: newEmail });
+        const existingConsumer = await require('../models/Consumer').findOne({ email: newEmail });
+        
+        if (existingVendor || existingConsumer) {
+            return res.status(400).json({ message: 'This email is already in use by another account.' });
+        }
+
+        // Verify OTP
+        const OTPModel = require('../models/OTP');
+        const latestOtp = await OTPModel.findOne({ email: newEmail.toLowerCase(), purpose: 'change-email' }).sort({ createdAt: -1 });
+
+        if (!latestOtp) return res.status(400).json({ message: 'Invalid or expired OTP' });
+        if (latestOtp.expiresAt < new Date()) return res.status(400).json({ message: 'OTP has expired' });
+
+        if (latestOtp.attempts >= 5) {
+            await OTPModel.deleteOne({ _id: latestOtp._id });
+            return res.status(429).json({ message: 'Too many failed attempts. Please request a new OTP.' });
+        }
+
+        const isMatch = await bcrypt.compare(otp, latestOtp.otp);
+        if (!isMatch) {
+            latestOtp.attempts += 1;
+            await latestOtp.save();
+            return res.status(400).json({ message: 'Invalid OTP' });
+        }
+
+        // Update email
+        const vendor = await Vendor.findById(vendorId);
+        vendor.email = newEmail;
+        vendor.isEmailVerified = true;
+        await vendor.save();
+
+        await OTPModel.deleteOne({ _id: latestOtp._id });
+
+        res.json({ message: 'Email updated successfully', email: newEmail });
+    } catch (error) {
+        console.error("Email Update Error:", error);
+        res.status(500).json({ message: 'Server error updating email' });
     }
 });
 
@@ -91,10 +146,21 @@ router.put('/password', protect, vendorOnly, async (req, res) => {
         const vendor = await Vendor.findById(vendorId);
         if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
 
-        // Check current password
-        const isMatch = await bcrypt.compare(currentPassword, vendor.password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Incorrect current password.' });
+        const isGoogleWithoutPassword = vendor.authProvider === 'google' && !vendor.password;
+
+        if (!isGoogleWithoutPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ message: 'Please provide current password.' });
+            }
+            // Check current password
+            const isMatch = await bcrypt.compare(currentPassword, vendor.password);
+            if (!isMatch) {
+                return res.status(401).json({ message: 'Incorrect current password.' });
+            }
+        }
+
+        if (!newPassword) {
+            return res.status(400).json({ message: 'Please provide new password.' });
         }
 
         // Hash new password

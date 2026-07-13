@@ -36,6 +36,8 @@ export default function DashboardLayout({
         if (!isLoading) {
             if (!user) {
                 router.push("/auth/signin");
+            } else if (user.requiresCompletion) {
+                router.push("/auth/vendor-completion");
             } else if (user.role !== "vendor") {
                 router.push("/map");
             }
@@ -160,7 +162,7 @@ export default function DashboardLayout({
                     {!isCollapsed && (
                         <div className="min-w-0 flex-1">
                             <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{user.name}</p>
-                            <button onClick={logout} className="text-xs text-red-500 hover:text-red-600 font-bold tracking-wide uppercase transition-colors">Sign Out</button>
+                            <button onClick={logout} className="text-xs text-red-500 hover:text-red-600 font-bold tracking-wide uppercase transition-colors cursor-pointer">Sign Out</button>
                         </div>
                     )}
                 </div>

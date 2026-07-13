@@ -110,6 +110,8 @@ export default function ConsumerLayout({
         if (!isLoading) {
             if (!user) {
                 router.push("/auth/signin");
+            } else if (user.requiresCompletion) {
+                router.push("/auth/vendor-completion");
             } else if (user.role === "vendor") {
                 router.push("/dashboard");
             }

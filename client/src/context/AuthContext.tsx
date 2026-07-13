@@ -23,6 +23,8 @@ interface User {
         type: "Point",
         coordinates: [number, number]; // [lng, lat]
     };
+    requiresCompletion?: boolean; // NEW: For Google vendor signups
+    hasPassword?: boolean;
 }
 
 interface AuthContextType {

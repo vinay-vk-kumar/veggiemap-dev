@@ -9,6 +9,7 @@ import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Truck, User, ArrowRight, Loader2, Eye, EyeOff, MapPin, Store, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function SignUpPage() {
     const [step, setStep] = useState(1);
@@ -24,6 +25,8 @@ export default function SignUpPage() {
         vendorType: "mobile",
     });
 
+    const [otp, setOtp] = useState("");
+
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -37,7 +40,9 @@ export default function SignUpPage() {
 
     useEffect(() => {
         if (!isAuthLoading && user) {
-            if (user.role === "vendor") {
+            if (user.requiresCompletion) {
+                router.push("/auth/vendor-completion");
+            } else if (user.role === "vendor") {
                 router.push("/dashboard");
             } else {
                 router.push("/map");
@@ -174,6 +179,13 @@ export default function SignUpPage() {
                 };
 
             const response = await api.post(endpoint, payload);
+            
+            if (response.data.requiresVerification) {
+                toast.success(response.data.message);
+                setStep(5);
+                return;
+            }
+
             const { token, ...userData } = response.data;
             login(token, userData);
 
@@ -186,6 +198,41 @@ export default function SignUpPage() {
         } catch (err: any) {
             console.error(err);
             const msg = err.response?.data?.message || "Something went wrong. Please try again.";
+            setError(msg);
+            toast.error(msg);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifyOTP = async () => {
+        if (!otp || otp.length < 6) {
+            toast.error("Please enter a valid 6-digit OTP");
+            return;
+        }
+
+        setIsLoading(true);
+        setError("");
+
+        try {
+            const response = await api.post("/auth/otp/verify", {
+                email: formData.email,
+                otp,
+                purpose: "verify-email"
+            });
+
+            const { token, ...userData } = response.data;
+            login(token, userData);
+
+            const userRole = userData.role || role;
+            if (userRole === "vendor") {
+                router.push("/dashboard");
+            } else {
+                router.push("/map");
+            }
+        } catch (err: any) {
+            console.error(err);
+            const msg = err.response?.data?.message || "Invalid OTP";
             setError(msg);
             toast.error(msg);
         } finally {
@@ -213,18 +260,19 @@ export default function SignUpPage() {
                 </button>
             )}
 
-            <div className="mb-8">
-                <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter mb-2">
-                    {step === 1 ? "Join VeggieMap" : step === 2 ? "Account Details" : "Shop Details"}
+            <div className="mb-5">
+                <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter mb-1">
+                    {step === 1 ? "Join VeggieMap" : step === 2 ? "Account Details" : step === 5 ? "Verify Email" : "Shop Details"}
                 </h2>
                 <p className="text-zinc-500 font-medium">
                     {step === 1 ? "Choose your account type to get started." :
                         step === 2 ? "Fill in your basic information." :
+                        step === 5 ? "Enter the verification code sent to your email." :
                             "Tell us a bit about your business."}
                 </p>
 
                 {/* Stepper Progress */}
-                <div className="flex items-center gap-2 mt-6">
+                <div className="flex items-center gap-2 mt-4">
                     <div className={cn("h-2 rounded-full flex-1 transition-all", step >= 1 ? "bg-green-500" : "bg-zinc-200 dark:bg-zinc-800")} />
                     <div className={cn("h-2 rounded-full flex-1 transition-all", step >= 2 ? "bg-green-500" : "bg-zinc-200 dark:bg-zinc-800")} />
                     {role === "vendor" && (
@@ -243,8 +291,8 @@ export default function SignUpPage() {
             )}
 
             {step === 1 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
-                    <div className="grid gap-4">
+                <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
+                    <div className="grid gap-3">
                         <button
                             onClick={() => setRole("consumer")}
                             className={cn(
@@ -289,7 +337,54 @@ export default function SignUpPage() {
             )}
 
             {step === 2 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
+                <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
+                    <div className="w-full flex justify-center pt-2">
+                        <GoogleLogin
+                            onSuccess={async (credentialResponse) => {
+                                try {
+                                    setIsLoading(true);
+                                    const response = await api.post("/auth/google/login", { 
+                                        credential: credentialResponse.credential,
+                                        role: role,
+                                        action: "signup"
+                                    });
+                                    const { token, ...userData } = response.data;
+                                    login(token, userData);
+                                    if (userData.requiresCompletion) {
+                                        router.push("/auth/vendor-completion");
+                                    } else if (userData.role === "vendor") {
+                                        router.push("/dashboard");
+                                    } else {
+                                        router.push("/map");
+                                    }
+                                } catch (err: any) {
+                                    toast.error(err.response?.data?.message || "Google signup failed");
+                                } finally {
+                                    setIsLoading(false);
+                                }
+                            }}
+                            onError={() => {
+                                toast.error("Google Signup Failed");
+                            }}
+                            theme="filled_black"
+                            size="large"
+                            shape="pill"
+                            text="signup_with"
+                            width="100%"
+                        />
+                    </div>
+
+                    <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="bg-zinc-50 dark:bg-black px-4 text-zinc-500 font-medium">
+                                Or register with email
+                            </span>
+                        </div>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">
                             {role === "vendor" ? "Shop Owner Name" : "Full Name"}
@@ -299,7 +394,7 @@ export default function SignUpPage() {
                             required
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
+                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white caret-green-500 placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
                             placeholder={role === "vendor" ? "e.g. Ramu" : "e.g. John Doe"}
                         />
                     </div>
@@ -313,7 +408,7 @@ export default function SignUpPage() {
                                 type="text"
                                 value={formData.shopName}
                                 onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
-                                className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
+                                className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white caret-green-500 placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
                                 placeholder="e.g. Ramu's Fresh Veggies"
                             />
                         </div>
@@ -328,7 +423,7 @@ export default function SignUpPage() {
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
+                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white caret-green-500 placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
                             placeholder="you@example.com"
                         />
                     </div>
@@ -344,7 +439,7 @@ export default function SignUpPage() {
                                     required
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 pr-12 transition-all"
+                                    className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white caret-green-500 placeholder:text-zinc-400 text-base h-14 px-4 pr-12 transition-all"
                                     placeholder="••••••••"
                                 />
                                 <button
@@ -375,7 +470,7 @@ export default function SignUpPage() {
             )}
 
             {step === 3 && role === "vendor" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
+                <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
                     <div>
                         <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">
                             Phone Number
@@ -385,7 +480,7 @@ export default function SignUpPage() {
                             required
                             value={formData.phoneNumber}
                             onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
+                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white caret-green-500 placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
                             placeholder="e.g. 9876543210"
                         />
                     </div>
@@ -400,7 +495,7 @@ export default function SignUpPage() {
                                 required
                                 value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 pr-12 transition-all"
+                                className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white caret-green-500 placeholder:text-zinc-400 text-base h-14 px-4 pr-12 transition-all"
                                 placeholder="••••••••"
                             />
                             <button
@@ -426,7 +521,7 @@ export default function SignUpPage() {
             )}
 
             {step === 4 && role === "vendor" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
+                <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
                     <div>
                         <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-4">
                             How do you operate?
@@ -495,8 +590,61 @@ export default function SignUpPage() {
                 </div>
             )}
 
+            {step === 5 && (
+                <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
+                    <div className="text-center mb-4">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 mb-4">
+                            <Store className="w-8 h-8" />
+                        </div>
+                        <p className="text-zinc-500 text-sm font-medium">We've sent a 6-digit code to <br/><span className="font-bold text-zinc-900 dark:text-white">{formData.email}</span></p>
+                    </div>
+
+                    <div>
+                        <input
+                            type="text"
+                            maxLength={6}
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-center text-3xl tracking-[0.5em] h-16 transition-all font-mono"
+                            placeholder="------"
+                        />
+                    </div>
+
+                    <div className="pt-2">
+                        <Button
+                            onClick={handleVerifyOTP}
+                            disabled={isLoading}
+                            className="w-full flex justify-center items-center py-4 px-4 rounded-[16px] shadow-xl shadow-green-600/20 text-lg font-bold text-white bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 h-14 transition-all active:scale-[0.98]"
+                        >
+                            {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Verify & Continue"}
+                        </Button>
+                    </div>
+                    
+                    <div className="text-center mt-4">
+                        <button 
+                            type="button" 
+                            disabled={isLoading}
+                            onClick={async () => {
+                                setIsLoading(true);
+                                try {
+                                    await api.post("/auth/otp/send", { email: formData.email, purpose: "verify-email" });
+                                    toast.success("A new OTP has been sent!");
+                                } catch (err: any) {
+                                    toast.error(err.response?.data?.message || "Failed to resend OTP");
+                                } finally {
+                                    setIsLoading(false);
+                                }
+                            }}
+                            className="text-sm font-bold text-green-600 hover:text-green-700"
+                        >
+                            Resend Code
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {step === 1 && (
-                <div className="mt-8 text-center">
+                <div className="mt-5 text-center">
                     <Link href="/auth/signin" className="font-bold text-green-600 hover:text-green-500 text-sm">
                         Already have an account? <span className="underline underline-offset-2">Sign In</span>
                     </Link>

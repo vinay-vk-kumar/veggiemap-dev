@@ -64,9 +64,9 @@ export default function AuthLayout({
             </div>
 
             {/* Right Side - Auth Forms */}
-            <div className="flex-1 flex flex-col justify-center bg-zinc-50 dark:bg-black relative">
+            <div className="flex-1 h-screen overflow-y-auto bg-zinc-50 dark:bg-black relative">
                 {/* Mobile Header (Only visible on small screens) */}
-                <div className="absolute top-6 left-6 lg:hidden">
+                <div className="absolute top-6 left-6 lg:hidden z-10">
                     <Link href="/" className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-green-500 rounded-[10px] flex items-center justify-center">
                             <span className="text-white font-bold text-lg font-outfit">V</span>
@@ -77,8 +77,10 @@ export default function AuthLayout({
                     </Link>
                 </div>
 
-                <div className="w-full max-w-md mx-auto px-6 sm:px-12">
-                    {children}
+                <div className="flex min-h-full items-center justify-center p-6 py-6 lg:py-8 pt-16 lg:pt-8">
+                    <div className="w-full max-w-md">
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>
