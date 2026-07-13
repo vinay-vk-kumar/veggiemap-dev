@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +17,23 @@ const Navbar = () => {
     const [authNav, setAuthNav] = useState<string | null>(null);
     const { user, logout } = useAuth();
     const router = useRouter();
+    const navRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (navRef.current && !navRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isOpen]);
 
     const navLinks = [
         { name: "How it Works", href: "#how-it-works" },
@@ -25,7 +42,7 @@ const Navbar = () => {
     ];
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50 supports-backdrop-filter:bg-white/60">
+        <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50 supports-backdrop-filter:bg-white/60">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
@@ -44,7 +61,7 @@ const Navbar = () => {
                             <Link
                                 key={link.name}
                                 href={link.href}
-                                className="text-sm font-medium text-zinc-600 hover:text-green-600 dark:text-zinc-400 dark:hover:text-green-400 transition-colors"
+                                className="text-sm font-medium text-zinc-600 hover:text-green-600 dark:text-zinc-400 dark:hover:text-green-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded-sm px-1"
                             >
                                 {link.name}
                             </Link>
@@ -115,7 +132,8 @@ const Navbar = () => {
                     <div className="md:hidden">
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white focus:outline-none"
+                            aria-label="Toggle mobile menu"
+                            className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded-md p-1"
                         >
                             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                         </button>

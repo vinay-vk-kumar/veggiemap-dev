@@ -71,9 +71,9 @@ const Features = () => {
                         <div className="absolute right-0 top-0 h-full w-[40%] hidden md:flex items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
                             <div className="w-48 h-48 border border-green-500/20 rounded-full flex items-center justify-center">
                                 <div className="w-32 h-32 border border-green-500/30 rounded-full flex items-center justify-center">
-                                    <div className="w-16 h-16 bg-green-500/10 rounded-full animate-pulse border border-green-500/40 relative">
+                                    <div className="w-16 h-16 bg-green-500/10 rounded-full animate-pulse motion-reduce:animate-none border border-green-500/40 relative">
                                         {/* Sweeper */}
-                                        <div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-gradient-to-r from-green-500 to-transparent origin-left animate-[spin_3s_linear_infinite]"></div>
+                                        <div className="absolute top-1/2 left-1/2 w-1/2 h-0.5 bg-gradient-to-r from-green-500 to-transparent origin-left animate-[spin_3s_linear_infinite] motion-reduce:animate-none"></div>
                                     </div>
                                 </div>
                             </div>

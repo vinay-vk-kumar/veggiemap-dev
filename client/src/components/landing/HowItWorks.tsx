@@ -93,7 +93,7 @@ const HowItWorks = () => {
                             style={{ y: cartY }}
                             className="relative -mt-3 -ml-[14px] w-8 h-8 rounded-full bg-white dark:bg-zinc-950 border-4 border-green-500 shadow-xl flex items-center justify-center transform scale-125"
                         >
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-ping motion-reduce:animate-none"></div>
                         </motion.div>
                     </div>
 

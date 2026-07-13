@@ -18,6 +18,7 @@ import {
     useTransform,
     useSpring,
     useMotionValue,
+    useReducedMotion,
 } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -56,11 +57,13 @@ const Hero = () => {
         }
     };
 
-    const rotateX = useSpring(useTransform(mouseY, [-1, 1], [10, -10]), {
+    const shouldReduceMotion = useReducedMotion();
+
+    const rotateX = useSpring(useTransform(mouseY, [-1, 1], shouldReduceMotion ? [0, 0] : [10, -10]), {
         damping: 30,
         stiffness: 200,
     });
-    const rotateY = useSpring(useTransform(mouseX, [-1, 1], [-10, 10]), {
+    const rotateY = useSpring(useTransform(mouseX, [-1, 1], shouldReduceMotion ? [0, 0] : [-10, 10]), {
         damping: 30,
         stiffness: 200,
     });
@@ -80,14 +83,14 @@ const Hero = () => {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_40%,#000_70%,transparent_100%)]"></div>
 
                 {/* Radar Sweep Effect */}
-                <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(74,222,128,0.1)_360deg)] rounded-full animate-[spin_4s_linear_infinite] mix-blend-plus-lighter hidden lg:block"></div>
+                <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(74,222,128,0.1)_360deg)] rounded-full animate-[spin_4s_linear_infinite] motion-reduce:animate-none mix-blend-plus-lighter hidden lg:block"></div>
                 <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-green-500/10 rounded-full hidden lg:block"></div>
                 <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-green-500/10 rounded-full hidden lg:block"></div>
                 <div className="absolute top-1/2 left-3/4 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] border border-green-500/20 rounded-full hidden lg:block"></div>
 
                 {/* Glowing Orbs */}
-                <div className="absolute top-[10%] right-[20%] w-[400px] h-[400px] bg-green-400/20 dark:bg-green-500/10 rounded-full filter blur-[100px] animate-pulse duration-[8000ms]"></div>
-                <div className="absolute bottom-[20%] left-[10%] w-[500px] h-[500px] bg-emerald-400/20 dark:bg-emerald-700/10 rounded-full filter blur-[120px] animate-pulse duration-[10000ms]"></div>
+                <div className="absolute top-[10%] right-[20%] w-[400px] h-[400px] bg-green-400/20 dark:bg-green-500/10 rounded-full filter blur-[100px] animate-pulse motion-reduce:animate-none duration-[8000ms]"></div>
+                <div className="absolute bottom-[20%] left-[10%] w-[500px] h-[500px] bg-emerald-400/20 dark:bg-emerald-700/10 rounded-full filter blur-[120px] animate-pulse motion-reduce:animate-none duration-[10000ms]"></div>
             </motion.div>
 
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
@@ -247,7 +250,7 @@ const Hero = () => {
 
                         {/* Floating Floating Micro-Cards (Outside Phone for extreme 3D) */}
                         <motion.div
-                            animate={{ y: [15, -15, 15] }}
+                            animate={shouldReduceMotion ? { y: 0 } : { y: [15, -15, 15] }}
                             transition={{
                                 duration: 5,
                                 repeat: Infinity,
@@ -270,7 +273,7 @@ const Hero = () => {
                         </motion.div>
 
                         <motion.div
-                            animate={{ y: [-15, 15, -15] }}
+                            animate={shouldReduceMotion ? { y: 0 } : { y: [-15, 15, -15] }}
                             transition={{
                                 duration: 7,
                                 repeat: Infinity,
@@ -291,6 +294,44 @@ const Hero = () => {
                                 </p>
                             </div>
                         </motion.div>
+                    </motion.div>
+
+                    {/* Simplified Visual Content for Mobile */}
+                    <motion.div
+                        style={{ opacity: opacityHeroText }}
+                        className="lg:hidden w-full relative flex items-center justify-center mt-8"
+                    >
+                        <div className="w-full max-w-sm bg-white dark:bg-zinc-950 rounded-[32px] shadow-2xl border-[8px] border-zinc-100 dark:border-zinc-900 overflow-hidden relative aspect-[3/4]">
+                            {/* Static Map Background */}
+                             <div className="absolute inset-0 opacity-[0.4] mix-blend-multiply dark:mix-blend-lighten bg-[url('https://maps.wikimedia.org/osm-intl/12/2892/1715.png')] bg-cover bg-center"></div>
+                             <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-[2px]"></div>
+                             
+                             {/* Mobile UI elements */}
+                             <div className="relative z-10 p-6 flex flex-col items-center justify-center h-full gap-8">
+                                 {/* Floating marker */}
+                                 <div className="relative hover:-translate-y-2 transition-transform cursor-pointer">
+                                     <div className="w-20 h-20 bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-700 flex flex-col items-center justify-center p-2 relative z-10">
+                                         <span className="text-5xl filter drop-shadow-md">🥦</span>
+                                     </div>
+                                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 bg-white dark:bg-zinc-800 transform rotate-45 border-r border-b border-zinc-100 dark:border-zinc-700"></div>
+                                 </div>
+                                 
+                                 {/* Floating Card */}
+                                 <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-5 py-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] border border-white/50 dark:border-zinc-700/50 flex items-center gap-4 w-[280px]">
+                                     <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+                                         <Truck className="w-5 h-5" />
+                                     </div>
+                                     <div>
+                                         <p className="font-bold text-zinc-900 dark:text-white text-sm">
+                                             Raju's Cart
+                                         </p>
+                                         <p className="text-xs text-green-600 dark:text-green-400 font-bold mt-0.5">
+                                             Just 200m away
+                                         </p>
+                                     </div>
+                                 </div>
+                             </div>
+                        </div>
                     </motion.div>
                 </div>
             </div>
