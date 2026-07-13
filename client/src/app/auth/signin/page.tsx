@@ -32,8 +32,26 @@ export default function SignInPage() {
         }
     }, [user, isAuthLoading, router]);
 
+    const validateForm = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            toast.error("Please enter a valid email address.");
+            return false;
+        }
+
+        if (password.length < 6) {
+            toast.error("Password must be at least 6 characters long.");
+            return false;
+        }
+
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!validateForm()) return;
+
         setIsLoading(true);
         setError("");
 
@@ -72,33 +90,47 @@ export default function SignInPage() {
         }
     };
 
+    if (isAuthLoading || user) {
+        return (
+            <div className="w-full flex flex-col items-center justify-center min-h-[400px] animate-in fade-in duration-500">
+                <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
+                <p className="text-zinc-500 font-medium animate-pulse">Preparing your experience...</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-white dark:bg-zinc-800 py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-zinc-200 dark:border-zinc-700">
+        <div className="w-full">
+            <div className="mb-8">
+                <h2 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tighter mb-2">Welcome Back</h2>
+                <p className="text-zinc-500 font-medium">Please sign in to your account.</p>
+            </div>
+
             {/* Role Toggles */}
             <div className="flex gap-4 mb-8">
                 <button
                     onClick={() => setRole("consumer")}
                     className={cn(
-                        "flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                        "flex-1 flex flex-col items-center gap-3 p-5 rounded-[24px] border-2 transition-all active:scale-[0.98]",
                         role === "consumer"
-                            ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                            : "border-zinc-200 dark:border-zinc-700 hover:border-green-200 dark:hover:border-green-900 text-zinc-500"
+                            ? "border-green-500 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 shadow-[0_8px_16px_rgba(34,197,94,0.15)]"
+                            : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-green-200 dark:hover:border-green-900 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                     )}
                 >
-                    <User className="w-6 h-6" />
-                    <span className="font-medium text-sm">Customer</span>
+                    <User className={cn("w-7 h-7", role === "consumer" ? "text-green-600" : "")} />
+                    <span className="font-bold">Customer</span>
                 </button>
                 <button
                     onClick={() => setRole("vendor")}
                     className={cn(
-                        "flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                        "flex-1 flex flex-col items-center gap-3 p-5 rounded-[24px] border-2 transition-all active:scale-[0.98]",
                         role === "vendor"
-                            ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                            : "border-zinc-200 dark:border-zinc-700 hover:border-green-200 dark:hover:border-green-900 text-zinc-500"
+                            ? "border-green-500 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 shadow-[0_8px_16px_rgba(34,197,94,0.15)]"
+                            : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-green-200 dark:hover:border-green-900 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                     )}
                 >
-                    <Truck className="w-6 h-6" />
-                    <span className="font-medium text-sm">Vendor</span>
+                    <Truck className={cn("w-7 h-7", role === "vendor" ? "text-green-600" : "")} />
+                    <span className="font-bold">Vendor</span>
                 </button>
             </div>
 
@@ -110,28 +142,27 @@ export default function SignInPage() {
                 )}
 
                 <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Email address
+                    <label htmlFor="email" className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">
+                        Email Address
                     </label>
-                    <div className="mt-1">
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="block w-full rounded-md border-zinc-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm h-10 px-3 py-2 bg-white dark:bg-zinc-900 dark:border-zinc-700"
-                        />
-                    </div>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
+                        placeholder="you@example.com"
+                    />
                 </div>
 
                 <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label htmlFor="password" className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">
                         Password
                     </label>
-                    <div className="mt-1 relative">
+                    <div className="relative">
                         <input
                             id="password"
                             name="password"
@@ -140,12 +171,13 @@ export default function SignInPage() {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="block w-full rounded-md border-zinc-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm h-10 px-3 py-2 pr-10 bg-white dark:bg-zinc-900 dark:border-zinc-700"
+                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 pr-12 transition-all"
+                            placeholder="••••••••"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                         >
                             {showPassword ? (
                                 <EyeOff className="h-5 w-5" aria-hidden="true" />
@@ -156,16 +188,16 @@ export default function SignInPage() {
                     </div>
                 </div>
 
-                <div>
+                <div className="pt-2">
                     <Button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 h-11"
+                        className="w-full flex justify-center py-4 px-4 rounded-[16px] shadow-xl shadow-green-600/20 text-lg font-bold text-white bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 h-14 transition-all active:scale-[0.98]"
                     >
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <Loader2 className="w-6 h-6 animate-spin" />
                         ) : (
-                            <>Sign In <ArrowRight className="w-4 h-4 ml-2" /></>
+                            <>Sign In <ArrowRight className="w-5 h-5 ml-2" /></>
                         )}
                     </Button>
                 </div>
@@ -177,8 +209,8 @@ export default function SignInPage() {
                         <div className="w-full border-t border-zinc-300 dark:border-zinc-700" />
                     </div>
                     <div className="relative flex justify-center text-sm">
-                        <span className="bg-white dark:bg-zinc-800 px-2 text-zinc-500">
-                            New here?
+                        <span className="bg-zinc-50 dark:bg-black px-4 text-zinc-500 font-medium">
+                            New to VeggieMap?
                         </span>
                     </div>
                 </div>
