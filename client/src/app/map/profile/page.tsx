@@ -4,15 +4,17 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { User, LogOut, Save, Loader2, Mail, Edit2 } from "lucide-react";
+import { User, LogOut, Save, Loader2, Mail, Edit2, Bug } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import ReportBugModal from "@/components/ui/ReportBugModal";
 
 export default function ProfilePage() {
     const { user, logout } = useAuth();
     const [name, setName] = useState(user?.name || "");
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isBugModalOpen, setIsBugModalOpen] = useState(false);
 
     const handleSave = async () => {
         setIsLoading(true);
@@ -121,9 +123,21 @@ export default function ProfilePage() {
                     </span>
                 </Button>
 
-                <p className="text-center text-xs text-zinc-400">
-                    Logged in as <span className="font-medium text-zinc-600 dark:text-zinc-300">{user?.email}</span>
-                </p>
+                {/* Report Bug Button */}
+                <Button
+                    variant="ghost"
+                    className="w-full h-14 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 justify-between px-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm"
+                    onClick={() => setIsBugModalOpen(true)}
+                >
+                    <span className="flex items-center gap-3 font-semibold text-base">
+                        <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+                            <Bug className="w-4 h-4" />
+                        </div>
+                        Report a Bug
+                    </span>
+                </Button>
+
+                <ReportBugModal open={isBugModalOpen} onClose={() => setIsBugModalOpen(false)} />
             </div>
         </div>
     );

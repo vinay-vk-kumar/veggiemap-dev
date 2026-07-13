@@ -297,10 +297,7 @@ const Hero = () => {
                     </motion.div>
 
                     {/* Simplified Visual Content for Mobile */}
-                    <motion.div
-                        style={{ opacity: opacityHeroText }}
-                        className="lg:hidden w-full relative flex items-center justify-center mt-8"
-                    >
+                    <div className="lg:hidden w-full relative flex items-center justify-center mt-8">
                         <div className="w-full max-w-sm bg-white dark:bg-zinc-950 rounded-[32px] shadow-2xl border-[8px] border-zinc-100 dark:border-zinc-900 overflow-hidden relative aspect-[3/4]">
                             {/* Static Map Background */}
                              <div className="absolute inset-0 opacity-[0.4] mix-blend-multiply dark:mix-blend-lighten bg-[url('https://maps.wikimedia.org/osm-intl/12/2892/1715.png')] bg-cover bg-center"></div>
@@ -332,7 +329,7 @@ const Hero = () => {
                                  </div>
                              </div>
                         </div>
-                    </motion.div>
+                    </div>
                 </div>
             </div>
         </section>

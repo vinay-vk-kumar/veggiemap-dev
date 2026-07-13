@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents, ZoomControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useSocket } from "@/context/SocketContext";
 import { Icon, divIcon } from "leaflet";
-import { Loader2, Navigation } from "lucide-react";
+import { Loader2, Navigation, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
 import { useMapStore } from "@/store/useMapStore";
@@ -122,6 +122,14 @@ export default function ConsumerMapV3() {
     const [favorites, setFavorites] = useState<string[]>([]);
     const [isVendorListOpen, setIsVendorListOpen] = useState(false);
     const [isVendorDetailOpen, setIsVendorDetailOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
 
     useEffect(() => {
         const fetchFavorites = async () => {
@@ -351,9 +359,9 @@ export default function ConsumerMapV3() {
     );
 
     return (
-        <div className="relative h-full w-full">
+        <div className="absolute inset-0">
             {/* Overlay UI (Search + Chips) */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-400 flex flex-col gap-3">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-md z-[400] flex flex-col gap-3">
                 <SearchBar
                     value={searchQuery}
                     onChange={setSearchQuery}
@@ -389,27 +397,32 @@ export default function ConsumerMapV3() {
                     ]}
                 />
 
-                {/* <div className="pointer-events-auto">
+                <div className="pointer-events-auto mt-2">
                     <button
                         type="button"
                         onClick={() => setIsVendorListOpen(true)}
-                        className="w-full rounded-2xl px-4 py-3 border border-border bg-background/90 supports-backdrop-filter:bg-background/70 backdrop-blur-xl shadow-sm text-left"
+                        className="w-full flex items-center justify-between rounded-2xl px-5 py-3 border border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95 text-left"
                     >
-                        <div className="text-sm font-semibold text-foreground">
-                            Nearby vendors
+                        <div>
+                            <div className="text-sm font-bold text-zinc-900 dark:text-white">
+                                Nearby vendors
+                            </div>
+                            <div className="text-xs text-zinc-500 font-medium mt-0.5">
+                                Tap to view full list
+                            </div>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                            Tap to view list
+                        <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
+                            <List className="w-5 h-5" />
                         </div>
                     </button>
-                </div> */}
+                </div>
             </div>
 
             <MapContainer
                 center={center}
                 zoom={zoom}
                 scrollWheelZoom={true}
-                className="h-full w-full z-0"
+                className="absolute inset-0 z-0"
                 zoomControl={false}
                 ref={(map) => {
                     if (map) {
@@ -418,6 +431,7 @@ export default function ConsumerMapV3() {
                     }
                 }}
             >
+                {!isMobile && <ZoomControl position="bottomright" />}
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                 />
@@ -473,9 +487,9 @@ export default function ConsumerMapV3() {
             </MapContainer>
 
             {/* Bottom Controls */}
-            <div className="absolute bottom-24 right-4 z-400 flex flex-col gap-2 pointer-events-auto">
-                <Button size="icon" className="rounded-full shadow-lg bg-white hover:bg-gray-50 text-gray-700" onClick={handleMyLoc}>
-                    <Navigation className="w-5 h-5" />
+            <div className="absolute bottom-32 md:bottom-28 right-4 z-[400] flex flex-col gap-2 pointer-events-auto">
+                <Button size="icon" aria-label="Find my location" className="rounded-full shadow-xl bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 w-12 h-12" onClick={handleMyLoc}>
+                    <Navigation className="w-6 h-6" />
                 </Button>
             </div>
 

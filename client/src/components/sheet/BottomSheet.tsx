@@ -22,10 +22,11 @@ export function BottomSheet({
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-900" />
+        <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[9000]" />
         <Drawer.Content
+          aria-describedby={undefined}
           className={cn(
-            "fixed inset-x-0 bottom-0 z-950",
+            "fixed inset-x-0 bottom-0 z-[9500]",
             "rounded-t-3xl border border-border bg-background",
             "shadow-2xl outline-none",
             "max-h-[85vh] flex flex-col",

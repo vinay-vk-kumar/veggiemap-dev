@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Globe, ChevronDown } from "lucide-react";
+import { Globe, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BottomSheet } from "@/components/sheet/BottomSheet";
 
 declare global {
     interface Window {
@@ -181,60 +182,64 @@ const GoogleTranslate: React.FC = () => {
         LANGUAGES.find((l) => l.code === currentLang)?.name ?? "English";
 
     return (
-        <div className="relative inline-block w-full sm:w-auto" ref={dropdownRef}>
+        <div className="w-full sm:w-auto" ref={dropdownRef}>
             <button
                 type="button"
                 translate="no"
-                onClick={() => !isChanging && setIsOpen((o) => !o)}
+                onClick={() => !isChanging && setIsOpen(true)}
                 disabled={isChanging}
-                className="flex items-center justify-between gap-3 w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 sm:py-2.5 shadow-sm hover:border-emerald-500 dark:hover:border-emerald-500 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 group disabled:opacity-60 disabled:cursor-wait"
+                className="flex items-center justify-between gap-3 w-full bg-zinc-100 dark:bg-zinc-800/50 border border-transparent rounded-2xl px-4 py-3 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all focus:outline-none group disabled:opacity-60"
             >
-                <div className="flex items-center gap-2">
-                    <Globe
-                        className={cn(
-                            "w-5 h-5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-500",
-                            isChanging ? "animate-spin" : "group-hover:animate-pulse"
-                        )}
-                    />
-                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        {isChanging ? "Translating…" : currentLangName}
-                    </span>
-                </div>
-                <ChevronDown
-                    className={cn(
-                        "w-4 h-4 text-zinc-400 transition-transform duration-300",
-                        isOpen ? "rotate-180" : ""
-                    )}
-                />
-            </button>
-
-            {isOpen && !isChanging && (
-                <div className="absolute top-full left-0 sm:right-0 mt-2 w-full sm:w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] overflow-hidden animate-in fade-in slide-in-from-top-2">
-                    <div className="p-1.5 flex flex-col gap-0.5">
-                        {LANGUAGES.map((lang) => {
-                            const isActive = currentLang === lang.code;
-                            return (
-                                <button
-                                    key={lang.code}
-                                    translate="no"
-                                    onClick={() => handleLanguageChange(lang.code)}
-                                    className={cn(
-                                        "flex items-center justify-between w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                                        isActive
-                                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                            : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                    )}
-                                >
-                                    {lang.name}
-                                    {isActive && (
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                    )}
-                                </button>
-                            );
-                        })}
+                <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                        <Globe
+                            className={cn(
+                                "w-4 h-4 text-emerald-600 dark:text-emerald-500",
+                                isChanging ? "animate-spin" : "group-hover:animate-pulse"
+                            )}
+                        />
+                    </div>
+                    <div className="flex flex-col items-start min-w-0 flex-1">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider leading-none mb-1">Language</span>
+                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate w-full text-left">
+                            {isChanging ? "Translating…" : currentLangName}
+                        </span>
                     </div>
                 </div>
-            )}
+            </button>
+
+            <BottomSheet
+                open={isOpen && !isChanging}
+                onOpenChange={setIsOpen}
+                title="Select Language"
+            >
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                    {LANGUAGES.map((lang) => {
+                        const isActive = currentLang === lang.code;
+                        return (
+                            <button
+                                key={lang.code}
+                                translate="no"
+                                onClick={() => handleLanguageChange(lang.code)}
+                                className={cn(
+                                    "flex flex-col items-start p-4 rounded-2xl border-2 transition-all text-left",
+                                    isActive
+                                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm shadow-emerald-500/20"
+                                        : "border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-md"
+                                )}
+                            >
+                                <div className="flex justify-between items-center w-full mb-1">
+                                    <span className={cn("text-lg font-bold", isActive ? "text-emerald-700 dark:text-emerald-400" : "text-zinc-900 dark:text-white")}>
+                                        {lang.name}
+                                    </span>
+                                    {isActive && <Check className="w-5 h-5 text-emerald-600" />}
+                                </div>
+                                <span className="text-xs font-semibold text-zinc-400">{lang.code.toUpperCase()}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </BottomSheet>
 
             <style dangerouslySetInnerHTML={{
                 __html: `

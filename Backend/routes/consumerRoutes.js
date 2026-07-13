@@ -256,20 +256,28 @@ router.get('/search', protect, async (req, res) => {
 // @access  Private (Consumer)
 router.post('/favorites/:vendorId', protect, async (req, res) => {
     try {
-        const vendorId = req.params.vendorId;
+        const idParam = req.params.vendorId;
         const userId = req.userId; // Fixed: req.userId set by middleware
 
-        const vendor = await Vendor.findById(vendorId);
+        let query = {};
+        if (mongoose.Types.ObjectId.isValid(idParam)) {
+            query = { $or: [{ _id: idParam }, { userId: idParam }] };
+        } else {
+            query = { userId: idParam };
+        }
+
+        const vendor = await Vendor.findOne(query);
         if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
 
         const consumer = await Consumer.findOne({ userId });
         if (!consumer) return res.status(404).json({ message: 'Consumer profile not found' });
 
-        const index = consumer.favoriteVendors.indexOf(vendorId);
+        const vendorObjectIdStr = vendor._id.toString();
+        const index = consumer.favoriteVendors.findIndex(id => id.toString() === vendorObjectIdStr);
         let status;
 
         if (index === -1) {
-            consumer.favoriteVendors.push(vendorId);
+            consumer.favoriteVendors.push(vendor._id);
             status = 'added';
         } else {
             consumer.favoriteVendors.splice(index, 1);

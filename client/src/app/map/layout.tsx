@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2, Map as MapIcon, Heart, User, Settings, Bug } from "lucide-react";
+import { Loader2, Map as MapIcon, Heart, User, Settings, Bug, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GoogleTranslate from "@/components/landing/Language";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -92,14 +92,12 @@ export default function ConsumerLayout({
     const router = useRouter();
     const pathname = usePathname();
     const [isMobile, setIsMobile] = useState<boolean | null>(null);
-    const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     const navigate = (href: string) => {
-        if (navigatingTo) return;
-        setNavigatingTo(href);
+        if (pathname === href) return;
         router.push(href);
     };
-    const [isBugModalOpen, setIsBugModalOpen] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -107,10 +105,6 @@ export default function ConsumerLayout({
         window.addEventListener("resize", checkMobile);
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
-
-    useEffect(() => {
-        setNavigatingTo(null);
-    }, [pathname]);
 
     useEffect(() => {
         if (!isLoading) {
@@ -140,67 +134,95 @@ export default function ConsumerLayout({
         <div className="min-h-screen bg-zinc-50 dark:bg-black flex flex-col md:flex-row font-sans">
             {/* Desktop Sidebar */}
             <aside
-                className="hidden md:flex flex-col w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 h-screen sticky top-0"
+                className={cn(
+                    "hidden md:flex flex-col bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 h-screen sticky top-0 transition-all duration-300 ease-in-out relative",
+                    isSidebarOpen ? "w-72" : "w-20"
+                )}
                 style={{ zIndex: 100 }}
             >
-                <div className="p-8 border-b border-zinc-200 dark:border-zinc-800">
-                    <h1 className="font-extrabold text-2xl text-green-600 tracking-tight">VeggieMap</h1>
-                    <p className="text-sm text-zinc-500 font-medium">Fresh & Local</p>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    className="absolute -right-4 top-8 rounded-full w-8 h-8 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hidden md:flex hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm"
+                    aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+                >
+                    {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                </Button>
+
+                <div className={cn("border-b border-zinc-200 dark:border-zinc-800 transition-all duration-300 overflow-hidden", isSidebarOpen ? "p-8" : "py-8 px-4 flex justify-center")}>
+                    {isSidebarOpen ? (
+                        <>
+                            <h1 className="font-extrabold text-2xl text-green-600 tracking-tight whitespace-nowrap">VeggieMap</h1>
+                            <p className="text-sm text-zinc-500 font-medium whitespace-nowrap">Fresh & Local</p>
+                        </>
+                    ) : (
+                        <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
+                            <span className="text-white font-extrabold text-xl">V</span>
+                        </div>
+                    )}
                 </div>
 
-                <nav className="flex-1 p-6 space-y-3">
+                <nav className={cn("flex-1 space-y-3 overflow-y-auto overflow-x-hidden", isSidebarOpen ? "p-6" : "p-3")}>
                     {navItems.map((item) => {
                         const isActive = pathname === item.href;
-                        const isNav = navigatingTo === item.href;
                         return (
                             <button
                                 key={item.name}
                                 onClick={() => navigate(item.href)}
-                                disabled={!!navigatingTo}
+                                title={!isSidebarOpen ? item.name : undefined}
                                 className={cn(
-                                    "w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-semibold transition-all duration-200 group text-left",
+                                    "flex items-center gap-4 rounded-2xl text-base font-semibold transition-all duration-200 group text-left",
+                                    isSidebarOpen ? "w-full px-5 py-4" : "w-14 h-14 justify-center mx-auto",
                                     isActive
                                         ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 shadow-sm"
-                                        : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200",
-                                    navigatingTo && !isNav && "opacity-50"
+                                        : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200"
                                 )}
                             >
-                                {isNav ? (
-                                    <Loader2 className="w-6 h-6 animate-spin flex-shrink-0" />
-                                ) : (
-                                    <item.icon
-                                        className={cn(
-                                            "w-6 h-6 flex-shrink-0 transition-transform group-hover:scale-110",
-                                            isActive ? "fill-current" : ""
-                                        )}
-                                    />
+                                <item.icon
+                                    className={cn(
+                                        "w-6 h-6 flex-shrink-0 transition-transform group-hover:scale-110",
+                                        isActive ? "fill-current" : ""
+                                    )}
+                                />
+                                {isSidebarOpen && (
+                                    <span className="whitespace-nowrap overflow-hidden transition-all duration-300">
+                                        {item.name}
+                                    </span>
                                 )}
-                                {isNav ? "Loading…" : item.name}
                             </button>
                         );
                     })}
                 </nav>
 
-                <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 space-y-6">
-                    <div className="flex flex-col gap-4 px-2">
-                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Preferences</span>
-                        <div className="flex flex-col gap-3">
-                            <GoogleTranslate />
-                            <div className="flex items-center justify-between p-2.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
-                                <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Dark Mode</span>
+                <div className={cn("border-t border-zinc-200 dark:border-zinc-800 space-y-6 transition-all duration-300", isSidebarOpen ? "p-6" : "py-6 px-3 flex flex-col items-center")}>
+                    <div className="flex flex-col gap-4 w-full">
+                        {isSidebarOpen && <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider px-2 whitespace-nowrap">Preferences</span>}
+                        <div className={cn("flex gap-3", isSidebarOpen ? "flex-col" : "flex-col items-center")}>
+                            {isSidebarOpen ? (
+                                <GoogleTranslate />
+                            ) : (
+                                <Button variant="ghost" size="icon" className="w-14 h-14 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 shrink-0" title="Translate">
+                                    <Settings className="w-5 h-5 text-zinc-500" />
+                                </Button>
+                            )}
+                            <div className={cn("flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800 transition-all shrink-0", isSidebarOpen ? "p-2.5" : "p-2 w-14 h-14 justify-center rounded-2xl")}>
+                                {isSidebarOpen && <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 whitespace-nowrap">Dark Mode</span>}
                                 <ThemeToggle />
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800/50">
-                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400">
+                    <div className={cn("flex items-center gap-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800/50 transition-all duration-300 shrink-0", isSidebarOpen ? "p-3 w-full" : "p-2 w-14 h-14 justify-center mx-auto shrink-0")}>
+                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-400 shrink-0">
                             <User className="w-5 h-5" />
                         </div>
-                        <div className="min-w-0">
-                            <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{user.name}</p>
-                            <p className="text-xs text-zinc-500 truncate font-medium">Consumer Account</p>
-                        </div>
+                        {isSidebarOpen && (
+                            <div className="min-w-0">
+                                <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">{user.name}</p>
+                                <p className="text-xs text-zinc-500 truncate font-medium">Consumer Account</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </aside>
@@ -216,7 +238,7 @@ export default function ConsumerLayout({
                     <MobilePreferencesMenu />
                 </header>
 
-                <div className="flex-1 w-full h-full relative pt-[68px] md:pt-0">
+                <div className="flex-1 w-full relative pt-[68px] md:pt-0 flex flex-col">
                     {children}
                 </div>
             </main>
@@ -228,12 +250,10 @@ export default function ConsumerLayout({
             >
                 {navItems.map((item) => {
                     const isActive = pathname === item.href;
-                    const isNav = navigatingTo === item.href;
                     return (
                         <button
                             key={item.name}
                             onClick={() => navigate(item.href)}
-                            disabled={!!navigatingTo}
                             className={cn(
                                 "relative flex flex-col items-center justify-center w-14 h-14 rounded-full transition-all duration-300",
                                 isActive
@@ -241,11 +261,7 @@ export default function ConsumerLayout({
                                     : "text-white/60 hover:text-white hover:bg-white/10"
                             )}
                         >
-                            {isNav ? (
-                                <Loader2 className="w-6 h-6 animate-spin" />
-                            ) : (
-                                <item.icon className={cn("w-6 h-6", isActive && "fill-current")} />
-                            )}
+                            <item.icon className={cn("w-6 h-6", isActive && "fill-current")} />
                             {isActive && (
                                 <span className="absolute -bottom-6 text-[10px] font-bold text-black dark:text-white opacity-0 animate-in fade-in slide-in-from-bottom-2">
                                     {item.name}
@@ -255,18 +271,6 @@ export default function ConsumerLayout({
                     );
                 })}
             </nav>
-
-            {/* Report Bug FAB — bottom-right, above bottom nav on mobile */}
-            <button
-                onClick={() => setIsBugModalOpen(true)}
-                className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-[99] flex items-center gap-2 px-4 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full shadow-xl text-sm font-semibold hover:scale-105 active:scale-95 transition-transform"
-                title="Report a Bug"
-            >
-                <Bug className="w-4 h-4" />
-                <span className="hidden sm:inline">Report a Bug</span>
-            </button>
-
-            <ReportBugModal open={isBugModalOpen} onClose={() => setIsBugModalOpen(false)} />
         </div>
     );
 }

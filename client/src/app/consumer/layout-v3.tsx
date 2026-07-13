@@ -19,13 +19,8 @@ const ConsumerMapV3 = dynamic(
 
 export default function ConsumerLayout() {
     return (
-        <div className="h-[calc(100vh-64px)] w-full flex overflow-hidden">
-            {/* Right: Map (Adaptive) */}
-            <div className="w-full h-full relative">
-                <ConsumerMapV3 />
-
-                {/* Mobile: Floating List Button (Todo) */}
-            </div>
+        <div className="flex-1 w-full h-full relative overflow-hidden flex flex-col">
+            <ConsumerMapV3 />
         </div>
     );
 }
