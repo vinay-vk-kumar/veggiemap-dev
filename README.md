@@ -12,12 +12,22 @@ To solve this, VeggieMap provides a real-time, hyperlocal tracking platform. It 
 ## System Architecture
 
 ```mermaid
-graph TD
-    Client[Web Consumer/Vendor Client] -->|HTTPS| Frontend[Next.js App]
-    Frontend -->|REST APIs| Backend[Node/Express Server]
-    Client <-->|WebSocket w/ Socket.io| Backend
-    Backend -->|Mongoose ODM| Database[(MongoDB Atlas)]
-    Backend -->|Image Hosting| CD[(Cloudinary)]
+architecture-beta
+    group frontend(server)[Frontend Clients]
+    
+    service vendor(internet)[Vendor Dashboard\n(Next.js)] in frontend
+    service consumer(internet)[Consumer Map\n(Next.js)] in frontend
+    
+    group backend(cloud)[Backend Infrastructure]
+    
+    service api(server)[Node.js / Express\nREST API & Socket.io] in backend
+    service db(database)[MongoDB Atlas\n(2dsphere indexes)] in backend
+    service cloud(cloud)[Cloudinary\n(Image Storage)] in backend
+    
+    vendor:R --> L:api
+    consumer:R --> L:api
+    api:B --> T:db
+    api:R --> L:cloud
 ```
 
 ## Directory Structure
@@ -44,20 +54,32 @@ veggiemap-dev-main/
 
 ## API & Data Flow
 
-The core mechanics rely on geospatial queries (`$near`) triggered via REST endpoints, immediately followed by persistent, bidirectional WebSocket rooms for real-time state mutations. Continuous geolocation streams are optimized aggressively: while WebSocket signals propagate instantly to consumer viewports, physical database writes in MongoDB are throttled and debounced to **30,000ms (30s)** per mobile connection to prevent I/O bottlenecks.
+The core of VeggieMap is its real-time location streaming. When a mobile vendor goes online, their browser's Geolocation API tracks them (`enableHighAccuracy: true`). 
+
+1. **Emission:** The vendor's client emits a `vendor:location-update` Socket.io event containing `lat` and `lng`.
+2. **Throttling:** The backend receives the ping. It checks the in-memory `lastDbUpdate` timestamp. If less than **30 seconds (30000ms)** have passed, the database update is skipped to prevent database choking. If more than 30 seconds have passed, it writes the coordinate to MongoDB.
+3. **Geo-Fencing:** The backend calculates a truncated 1-degree coordinate grid name (e.g., `geo-28-77`). 
+4. **Broadcasting:** The backend emits the `vendor:location-move` event strictly to consumers subscribed to that specific `geo-28-77` room. 
 
 ```mermaid
 sequenceDiagram
-    participant Vendor Client
-    participant Express Server
-    participant MongoDB
-    participant Consumer Client
+    participant Mobile Vendor
+    participant Socket.io Server
+    participant MongoDB Atlas
+    participant Consumer Map
 
-    Vendor Client->>Express Server: Emit `vendor:location-update`
-    Express Server->>MongoDB: Update `currentLocation` (Throttled 30s limit)
-    Express Server->>Express Server: Calculate Grid (e.g., area_12_45)
-    Express Server->>Express Server: Emit `vendor:location-move` to room `area_12_45`
-    Express Server->>Consumer Client: Pushed UI Location Change
+    Mobile Vendor->>Socket.io Server: Emit 'vendor:location-update' (lat, lng)
+    
+    alt 30s elapsed since last write?
+        Socket.io Server->>MongoDB Atlas: Vendor.findOneAndUpdate()
+        MongoDB Atlas-->>Socket.io Server: Write Acknowledged
+    else < 30s elapsed
+        Note over Socket.io Server: DB Write Skipped (Debounced)
+    end
+    
+    Socket.io Server->>Socket.io Server: Calculate Geo-Room (e.g., 'geo-28-77')
+    Socket.io Server->>Consumer Map: Broadcast 'vendor:location-move' to Room
+    Consumer Map->>Consumer Map: Animate Marker (1.5s cubic-bezier transition)
 ```
 
 ### Core REST API Reference
@@ -145,6 +167,7 @@ npm run dev
 - **Real-time Geospatial Tracking:** WebSockets broadcast vendor locations natively using in-memory Socket maps.
 - **Aggressive Query Pagination:** To guarantee O(1) performance and stable client rendering, the backend geospatial pipelines are hard-capped to aggregate only exactly **20** nearest tags at once.
 - **Hyperlocal Discovery:** Hard limit constraints lock geospatial `$near` lookups to exactly 5,000 meters.
+- **Database Protection:** Server-side debouncing limits MongoDB upserts to **1 write per 30,000ms** per connection.
 - **Transparent Pricing:** Inventory synchronization pushes live price tags directly to the consumer map.
 - **Advanced Landing UI:** Heavily optimized DOM structure using Framer Motion for scroll-linked 3D physics.
 
@@ -155,6 +178,6 @@ npm run dev
 
 ## Relevant Future Scope / Optimizations
 
-1. **Redis Adapter for Socket.io:** The application currently relies on an in-memory `connectedVendors` Map. Implementing `@socket.io/redis-adapter` is essential for horizontal scaling across multiple load-balanced backend processes.
-2. **API Rate Limiting:** Implement `express-rate-limit` natively or via NGINX ingress to prevent brute-force attacks on the JWT authentication and intensive spatial search endpoints.
-3. **Compound Database Indexing:** Create compound indexes mapping `isOnline`, `vendorType`, and `currentLocation` to flatten the time complexity of chained filter aggregations.
+1. **Client-Side Spatial Throttling:** Currently, the vendor's device relies on `navigator.geolocation` defaults to emit WebSockets. Implementing a client-side Haversine check to only emit a socket event if the vendor has moved >15 meters will drastically reduce network chatter on the backend.
+2. **Asymmetric Connection Protocols:** While vendors require WebSockets to broadcast data, consumers are primarily passive readers. Migrating consumers from WebSockets to Server-Sent Events (SSE) will drastically reduce the TCP connection overhead and memory footprint on the Node.js server.
+3. **In-Memory Geohashing Cache:** To scale beyond the current database capacity, replace the `$geoNear` query with an in-memory Geohash `Map` lookup in Node.js. By stringifying coordinates (e.g., `tdr1v`), consumer queries become $O(1)$ dictionary lookups rather than mathematical database computations.
