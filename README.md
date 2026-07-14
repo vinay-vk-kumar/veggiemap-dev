@@ -12,22 +12,12 @@ To solve this, VeggieMap provides a real-time, hyperlocal tracking platform. It 
 ## System Architecture
 
 ```mermaid
-architecture-beta
-    group frontend(server)[Frontend Clients]
-    
-    service vendor(internet)[Vendor Dashboard\n(Next.js)] in frontend
-    service consumer(internet)[Consumer Map\n(Next.js)] in frontend
-    
-    group backend(cloud)[Backend Infrastructure]
-    
-    service api(server)[Node.js / Express\nREST API & Socket.io] in backend
-    service db(database)[MongoDB Atlas\n(2dsphere indexes)] in backend
-    service cloud(cloud)[Cloudinary\n(Image Storage)] in backend
-    
-    vendor:R --> L:api
-    consumer:R --> L:api
-    api:B --> T:db
-    api:R --> L:cloud
+graph TD
+    Client[Web Consumer/Vendor Client] -->|HTTPS| Frontend[Next.js App]
+    Frontend -->|REST APIs| Backend[Node/Express Server]
+    Client <-->|WebSocket w/ Socket.io| Backend
+    Backend -->|Mongoose ODM| Database[(MongoDB Atlas)]
+    Backend -->|Image Hosting| CD[(Cloudinary)]
 ```
 
 ## Directory Structure
@@ -144,22 +134,24 @@ _The consumer map UI showing hovering vendor carts_
 
 ## Quick Start / Installation
 
+We use Docker to orchestrate the frontend and backend services easily. MongoDB Atlas and Cloudinary are strictly cloud-based and do not run in containers.
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/yourusername/veggiemap-dev-main.git
 cd veggiemap-dev-main
 
-# 2. Start the Backend
-cd Backend
-npm install
-# Create .env with the variables described above
-npm run start
+# 2. Configure Environment Variables
+# Copy the example templates and fill in your real credentials (especially MongoDB URI and Cloudinary keys)
+cp Backend/.env.example Backend/.env
+cp client/.env.local.example client/.env.local
 
-# 3. Start the Frontend (New Terminal Window)
-cd ../client
-npm install
-# Ensure .env.local contains your frontend environment variables
-npm run dev
+# 3. Build and Start the Stack
+# This will build the Node.js backend and Next.js frontend, then spin them up.
+docker compose up --build -d
+
+# The backend will be available at http://localhost:5000
+# The frontend will be available at http://localhost:3000
 ```
 
 ## Key Features
