@@ -173,7 +173,7 @@ docker compose up --build -d
 
 ## License
 
-Proprietary / All Rights Reserved. Copyright © Vinay Kumar (https://github.com/vinay-vk-kumar). You may not copy, fork, modify, distribute, or use this software without explicit written permission.
+Proprietary / All Rights Reserved. Copyright © [Vinay Kumar](https://github.com/vinay-vk-kumar). You may not copy, fork, modify, distribute, or use this software without explicit written permission.
 
 ## Relevant Future Scope / Optimizations
 
