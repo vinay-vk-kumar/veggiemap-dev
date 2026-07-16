@@ -116,15 +116,17 @@ _The consumer map UI showing hovering vendor carts_
 | `CLOUDINARY_API_KEY`    | Cloudinary REST API Key.                     | `983719237412`                          |
 | `CLOUDINARY_API_SECRET` | Cloudinary REST Secret.                      | `ABC123xyz_def_GHI`                     |
 | `ALLOWED_ORIGINS`       | Comma-separated list for CORS validation.    | `http://localhost:3000,https://app.com` |
+| `RECAPTCHA_SECRET_KEY`  | Secret key for Google reCAPTCHA v3.          | `6Ld...`                                |
+| `RESEND_API_KEY`        | Resend API Key for transactional emails.     | `re_12345...`                           |
 
-### Frontend (`client/.env.local` / `.env.production`)
+### Frontend (`client/.env` / `.env.local`)
 
 | Variable                  | Description                                 | Example Value               |
 | :------------------------ | :------------------------------------------ | :-------------------------- |
-| `NEXT_PUBLIC_API_URL`     | Base URL for Express REST routing.          | `http://localhost:5000/api` |
-| `NEXT_PUBLIC_SOCKET_URL`  | Base domain for `socket.io-client` binding. | `http://localhost:5000`     |
-| `NEXT_PUBLIC_BACKEND_URL` | Optional base origin config.                | `http://localhost:5000`     |
-| `NEXT_PUBLIC_ADMIN_PATH`  | Hashed or hidden route for Admin dashboard. | `/hidden-admin-panel`       |
+| `NEXT_PUBLIC_API_URL`            | Base URL for Express REST routing.          | `http://localhost:5000/api` |
+| `NEXT_PUBLIC_SOCKET_URL`         | Base domain for `socket.io-client` binding. | `http://localhost:5000`     |
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | Public Site Key for Google reCAPTCHA v3.    | `6Ld...`                    |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`   | Google OAuth Client ID for Google Auth.     | `123...apps.googleusercontent.com` |
 
 ## Prerequisites
 
@@ -168,6 +170,10 @@ docker compose up --build -d
 
 - **Frontend:** Optimized natively for zero-config deployment on Vercel or Netlify.
 - **Backend:** Express & Socket.io architecture can be easily containerized via Docker and deployed on platforms like Render, Railway, AWS EC2, or DigitalOcean Droplets. The only requirement for the backend is ensuring the port binds properly and Socket.io origin constraints are handled. Ensure MongoDB Atlas IP Network Access is whitelisted (`0.0.0.0/0`) if deploying to non-static IP cloud platforms.
+
+## License
+
+Proprietary / All Rights Reserved. Copyright © Vinay Kumar (https://github.com/vinay-vk-kumar). You may not copy, fork, modify, distribute, or use this software without explicit written permission.
 
 ## Relevant Future Scope / Optimizations
 
