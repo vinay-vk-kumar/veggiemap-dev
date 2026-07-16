@@ -19,7 +19,7 @@ export default function SignInPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-    
+
     // OTP Verification State
     const [isVerifying, setIsVerifying] = useState(false);
     const [otp, setOtp] = useState("");
@@ -56,7 +56,7 @@ export default function SignInPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!validateForm()) return;
 
         setIsLoading(true);
@@ -66,8 +66,6 @@ export default function SignInPage() {
             const endpoint = role === "vendor" ? "/auth/vendor/login" : "/auth/consumer/login";
             const response = await api.post(endpoint, { email, password });
 
-            // Backend should return { token, ...userData }
-            // According to analysis:
             // Vendor: { _id, vendorName, vendorType, role: 'vendor', userId, token }
             // Consumer: { _id, name, role: 'consumer', token }
 
@@ -75,10 +73,6 @@ export default function SignInPage() {
 
             login(token, userData);
 
-            // Redirect based on role
-            // Check userData.role because the selected 'role' state might be different if the API returns normalized data?
-            // Actually, rely on the API response or the 'role' we sent if we trust the flow.
-            // But userData.role is safest.
             const userRole = userData.role || role; // Fallback to state if not in response
 
             if (userRole === "vendor") {
@@ -90,7 +84,7 @@ export default function SignInPage() {
         } catch (err: any) {
             console.error(err);
             const msg = err.response?.data?.message || "Invalid credentials. Please try again.";
-            
+
             if (err.response?.data?.requiresVerification) {
                 try {
                     await api.post("/auth/otp/send", { email, purpose: "verify-email" });
@@ -165,8 +159,8 @@ export default function SignInPage() {
                     onClick={() => setRole("consumer")}
                     className={cn(
                         "flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] transition-all font-bold text-sm active:scale-[0.98]",
-                        role === "consumer" 
-                            ? "bg-white dark:bg-zinc-900 shadow-sm text-green-600 dark:text-green-400 border border-black/5 dark:border-white/5" 
+                        role === "consumer"
+                            ? "bg-white dark:bg-zinc-900 shadow-sm text-green-600 dark:text-green-400 border border-black/5 dark:border-white/5"
                             : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                     )}
                 >
@@ -176,8 +170,8 @@ export default function SignInPage() {
                     onClick={() => setRole("vendor")}
                     className={cn(
                         "flex-1 flex items-center justify-center gap-2 py-3 rounded-[12px] transition-all font-bold text-sm active:scale-[0.98]",
-                        role === "vendor" 
-                            ? "bg-white dark:bg-zinc-900 shadow-sm text-green-600 dark:text-green-400 border border-black/5 dark:border-white/5" 
+                        role === "vendor"
+                            ? "bg-white dark:bg-zinc-900 shadow-sm text-green-600 dark:text-green-400 border border-black/5 dark:border-white/5"
                             : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                     )}
                 >
@@ -189,7 +183,7 @@ export default function SignInPage() {
                 <div className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-300">
                     <div className="text-center mb-4">
                         <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Verify Your Email</h3>
-                        <p className="text-zinc-500 text-sm">We've sent a 6-digit code to <br/><span className="font-medium text-zinc-900 dark:text-zinc-300">{email}</span></p>
+                        <p className="text-zinc-500 text-sm">We've sent a 6-digit code to <br /><span className="font-medium text-zinc-900 dark:text-zinc-300">{email}</span></p>
                     </div>
 
                     <div>
@@ -212,10 +206,10 @@ export default function SignInPage() {
                             {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : "Verify & Sign In"}
                         </Button>
                     </div>
-                    
+
                     <div className="text-center mt-4">
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             disabled={isLoading}
                             onClick={async () => {
                                 setIsLoading(true);
@@ -242,119 +236,119 @@ export default function SignInPage() {
                         </div>
                     )}
 
-                <div className="w-full flex justify-center pt-2">
-                    <GoogleLogin
-                        onSuccess={async (credentialResponse) => {
-                            try {
-                                setIsLoading(true);
-                                const response = await api.post("/auth/google/login", { 
-                                    credential: credentialResponse.credential,
-                                    role: role,
-                                    action: "signin"
-                                });
-                                const { token, ...userData } = response.data;
-                                login(token, userData);
-                                if (userData.requiresCompletion) {
-                                    router.push("/auth/vendor-completion");
-                                } else if (userData.role === "vendor") {
-                                    router.push("/dashboard");
-                                } else {
-                                    router.push("/map");
+                    <div className="w-full flex justify-center pt-2">
+                        <GoogleLogin
+                            onSuccess={async (credentialResponse) => {
+                                try {
+                                    setIsLoading(true);
+                                    const response = await api.post("/auth/google/login", {
+                                        credential: credentialResponse.credential,
+                                        role: role,
+                                        action: "signin"
+                                    });
+                                    const { token, ...userData } = response.data;
+                                    login(token, userData);
+                                    if (userData.requiresCompletion) {
+                                        router.push("/auth/vendor-completion");
+                                    } else if (userData.role === "vendor") {
+                                        router.push("/dashboard");
+                                    } else {
+                                        router.push("/map");
+                                    }
+                                } catch (err: any) {
+                                    toast.error(err.response?.data?.message || "Google login failed");
+                                } finally {
+                                    setIsLoading(false);
                                 }
-                            } catch (err: any) {
-                                toast.error(err.response?.data?.message || "Google login failed");
-                            } finally {
-                                setIsLoading(false);
-                            }
-                        }}
-                        onError={() => {
-                            toast.error("Google Login Failed");
-                        }}
-                        theme="filled_black"
-                        size="large"
-                        shape="pill"
-                        text="continue_with"
-                        width="100%"
-                    />
-                </div>
-
-                <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="bg-zinc-50 dark:bg-black px-4 text-zinc-500 font-medium">
-                            Or continue with email
-                        </span>
-                    </div>
-                </div>
-
-                <div>
-                    <label htmlFor="email" className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">
-                        Email Address
-                    </label>
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
-                        placeholder="you@example.com"
-                    />
-                </div>
-
-                <div>
-                    <div className="flex justify-between items-end mb-2">
-                        <label htmlFor="password" className="block text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                            Password
-                        </label>
-                        <Link href="/auth/forgot-password" className="text-sm font-semibold text-green-600 hover:text-green-500">
-                            Forgot Password?
-                        </Link>
-                    </div>
-                    <div className="relative">
-                        <input
-                            id="password"
-                            name="password"
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="current-password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 pr-12 transition-all"
-                            placeholder="••••••••"
+                            }}
+                            onError={() => {
+                                toast.error("Google Login Failed");
+                            }}
+                            theme="filled_black"
+                            size="large"
+                            shape="pill"
+                            text="continue_with"
+                            width="100%"
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                        >
-                            {showPassword ? (
-                                <EyeOff className="h-5 w-5" aria-hidden="true" />
-                            ) : (
-                                <Eye className="h-5 w-5" aria-hidden="true" />
-                            )}
-                        </button>
                     </div>
-                </div>
 
-                <div className="pt-2">
-                    <Button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full flex justify-center py-4 px-4 rounded-[16px] shadow-xl shadow-green-600/20 text-lg font-bold text-white bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 h-14 transition-all active:scale-[0.98]"
-                    >
-                        {isLoading ? (
-                            <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : (
-                            <>Sign In <ArrowRight className="w-5 h-5 ml-2" /></>
-                        )}
-                    </Button>
-                </div>
-            </form>
+                    <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="bg-zinc-50 dark:bg-black px-4 text-zinc-500 font-medium">
+                                Or continue with email
+                            </span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">
+                            Email Address
+                        </label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 transition-all"
+                            placeholder="you@example.com"
+                        />
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-end mb-2">
+                            <label htmlFor="password" className="block text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                                Password
+                            </label>
+                            <Link href="/auth/forgot-password" className="text-sm font-semibold text-green-600 hover:text-green-500">
+                                Forgot Password?
+                            </Link>
+                        </div>
+                        <div className="relative">
+                            <input
+                                id="password"
+                                name="password"
+                                type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="block w-full rounded-[16px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm focus:border-green-500 focus:ring-green-500/20 text-zinc-900 dark:text-white placeholder:text-zinc-400 text-base h-14 px-4 pr-12 transition-all"
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="h-5 w-5" aria-hidden="true" />
+                                ) : (
+                                    <Eye className="h-5 w-5" aria-hidden="true" />
+                                )}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <Button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full flex justify-center py-4 px-4 rounded-[16px] shadow-xl shadow-green-600/20 text-lg font-bold text-white bg-gradient-to-br from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 h-14 transition-all active:scale-[0.98]"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                            ) : (
+                                <>Sign In <ArrowRight className="w-5 h-5 ml-2" /></>
+                            )}
+                        </Button>
+                    </div>
+                </form>
             )}
 
             <div className="mt-5">

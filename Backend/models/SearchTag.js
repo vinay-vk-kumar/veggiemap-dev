@@ -56,7 +56,7 @@ const searchTagSchema = new mongoose.Schema({
 // Indexes for High Performance
 searchTagSchema.index({ displayText: 'text', slug: 'text' }); // Text Search
 searchTagSchema.index({ vendorId: 1 }); // Fast Sync Updates
-searchTagSchema.index({ location: '2dsphere' }); // Geo Search (already in schema definition but good to be explicit)
+searchTagSchema.index({ location: '2dsphere' }); // Geo Search
 
 const SearchTag = mongoose.model('SearchTag', searchTagSchema);
 

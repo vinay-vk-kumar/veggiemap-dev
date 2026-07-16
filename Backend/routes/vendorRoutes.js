@@ -2,15 +2,13 @@ const express = require('express');
 const router = express.Router();
 const { protect, vendorOnly } = require('../middleware/auth');
 const Vendor = require('../models/Vendor');
-const SearchTag = require('../models/SearchTag'); // New Import
+const SearchTag = require('../models/SearchTag');
 const mongoose = require('mongoose');
 
-// --- Helper function from server.js (MUST BE COPIED) ---
 const getGeoRoomName = (lat, lng) => {
     return `geo-${Math.trunc(lat)}-${Math.trunc(lng)}`;
 };
 
-// --- Helper function to broadcast inventory changes (Step 23) ---
 const broadcastInventoryUpdate = async (vendorId, io) => {
     try {
         const vendor = await Vendor.findOne({ userId: vendorId });
@@ -33,18 +31,11 @@ const broadcastInventoryUpdate = async (vendorId, io) => {
     }
 };
 
-
-// @route   GET /api/vendor/menu
-// @desc    READ: Get the authenticated vendor's full menu
-// @access  Private (Vendor Only)
 router.get('/menu', protect, vendorOnly, async (req, res) => {
     // req.vendor is available from the vendorOnly middleware
     res.status(200).json(req.vendor.menu);
 });
 
-// @route   POST /api/vendor/menu
-// @desc    CREATE: Add a new product to the vendor's menu
-// @access  Private (Vendor Only)
 router.post('/menu', protect, vendorOnly, async (req, res) => {
     // Expecting: productName, pricePerKg, itemStatus, image, category
     const { productName, pricePerKg, itemStatus, image, category } = req.body;
@@ -78,7 +69,7 @@ router.post('/menu', protect, vendorOnly, async (req, res) => {
         // Return the newly created item (which is the last one in the menu array)
         const createdItem = updatedVendor.menu[updatedVendor.menu.length - 1];
 
-        // --- SYNC SEARCH TAG (New) ---
+        // --- SYNC SEARCH TAG ---
         if (createdItem.itemStatus === 'in-stock') {
             await SearchTag.create({
                 userId: req.vendor.userId,
@@ -102,15 +93,10 @@ router.post('/menu', protect, vendorOnly, async (req, res) => {
     }
 });
 
-
-// @route   PATCH /api/vendor/menu/:itemId
-// @desc    UPDATE: Edit an existing product's details
-// @access  Private (Vendor Only)
 router.patch('/menu/:itemId', protect, vendorOnly, async (req, res) => {
     const { itemId } = req.params;
     const updateFields = req.body;
 
-    // Use Mongoose's arrayFilters capability for efficient embedded document updates
     const update = {};
     for (const key in updateFields) {
         // Construct the update path: 'menu.$[item].<field>'
@@ -145,10 +131,9 @@ router.patch('/menu/:itemId', protect, vendorOnly, async (req, res) => {
         // Find the updated item to return
         const updatedItem = updatedVendor.menu.find(item => item._id.toString() === itemId);
 
-        // --- SYNC SEARCH TAG (New) ---
+        // --- SYNC SEARCH TAG ---
         if (updatedItem.itemStatus === 'in-stock') {
             // Re-sync ALL items for this vendor to be safe and simple
-            // We previously had a useless findOneAndUpdate here. Removing it.
             await SearchTag.deleteMany({ vendorId: req.vendor._id, type: 'item' });
 
             const newTags = updatedVendor.menu
@@ -197,9 +182,6 @@ router.patch('/menu/:itemId', protect, vendorOnly, async (req, res) => {
     }
 });
 
-// @route   DELETE /api/vendor/menu/:itemId
-// @desc    DELETE: Remove a product from the vendor's menu
-// @access  Private (Vendor Only)
 router.delete('/menu/:itemId', protect, vendorOnly, async (req, res) => {
     const { itemId } = req.params;
     const fs = require('fs');
@@ -246,7 +228,7 @@ router.delete('/menu/:itemId', protect, vendorOnly, async (req, res) => {
         const io = req.app.get('socketio');
         await broadcastInventoryUpdate(req.vendor.userId, io);
 
-        // --- SYNC SEARCH TAG (New) ---
+        // --- SYNC SEARCH TAG ---
         // Re-sync strategy is safest
         await SearchTag.deleteMany({ vendorId: req.vendor._id, type: 'item' });
         const newTags = updatedVendor.menu
@@ -275,12 +257,7 @@ router.delete('/menu/:itemId', protect, vendorOnly, async (req, res) => {
 
 
 // --- Vendor Status and Location Routes ---
-
-// @route   PATCH /api/vendor/toggle-online
-// @desc    UPDATE: Toggle the vendor's top-level status (isOnline)
-// @access  Private (Vendor Only)
 router.patch('/toggle-online', protect, vendorOnly, async (req, res) => {
-    // Renamed from isAvailable to isOnline
     const { isOnline } = req.body;
     console.log(`[Toggle Online] Request for Vendor ${req.vendor._id}: ${isOnline}`);
 
@@ -299,7 +276,7 @@ router.patch('/toggle-online', protect, vendorOnly, async (req, res) => {
         const io = req.app.get('socketio');
         await broadcastInventoryUpdate(req.vendor.userId, io);
 
-        // --- SYNC SEARCH TAG (New) ---
+        // --- SYNC SEARCH TAG ---
         // Update ALL tags for this vendor (SHop + Items)
         await SearchTag.updateMany(
             { vendorId: req.vendor._id },
@@ -317,10 +294,6 @@ router.patch('/toggle-online', protect, vendorOnly, async (req, res) => {
     }
 });
 
-
-// @route   PATCH /api/vendor/set-static-loc
-// @desc    UPDATE: Set the one-time location for a Static Vendor
-// @access  Private (Static Vendor Only)
 router.patch('/set-static-loc', protect, vendorOnly, async (req, res) => {
     const { coordinates } = req.body; // Expecting [longitude, latitude]
 
@@ -347,7 +320,7 @@ router.patch('/set-static-loc', protect, vendorOnly, async (req, res) => {
         const io = req.app.get('socketio');
         await broadcastInventoryUpdate(req.vendor.userId, io);
 
-        // --- SYNC SEARCH TAG (New) ---
+        // --- SYNC SEARCH TAG ---
         // Update ALL tags location
         await SearchTag.updateMany(
             { vendorId: req.vendor._id },
@@ -365,9 +338,6 @@ router.patch('/set-static-loc', protect, vendorOnly, async (req, res) => {
     }
 });
 
-// @route   GET /api/vendor/stats
-// @desc    READ: Get vendor dashboard statistics
-// @access  Private (Vendor Only)
 router.get('/stats', protect, vendorOnly, async (req, res) => {
     try {
         const vendor = req.vendor;

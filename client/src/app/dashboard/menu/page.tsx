@@ -29,9 +29,6 @@ export default function MenuPage() {
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    // Simplification: We remove confirm delete dialog for faster operations or use a simpler one.
-    // Let's keep a fast native confirm for low-fi, high-speed usage.
-
     const [formName, setFormName] = useState("");
     const [formPrice, setFormPrice] = useState("");
     const [formCategory, setFormCategory] = useState<"vegetable" | "fruit" | "other">("vegetable");
@@ -223,12 +220,12 @@ export default function MenuPage() {
                         {/* Input Fields */}
                         <div className="space-y-6">
                             <div className="space-y-3">
-                            <Label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Category</Label>
+                                <Label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Category</Label>
                                 <div className="flex gap-2 flex-wrap">
                                     {([
                                         { value: "vegetable", label: "Vegetable", emoji: "🥦" },
-                                        { value: "fruit",     label: "Fruit",     emoji: "🍎" },
-                                        { value: "other",     label: "Other",     emoji: "📦" },
+                                        { value: "fruit", label: "Fruit", emoji: "🍎" },
+                                        { value: "other", label: "Other", emoji: "📦" },
                                     ] as const).map((cat) => (
                                         <button
                                             key={cat.value}

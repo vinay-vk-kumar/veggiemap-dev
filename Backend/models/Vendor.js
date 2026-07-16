@@ -17,7 +17,7 @@ const menuSchema = new mongoose.Schema({
         enum: ['in-stock', 'out-of-stock'],
         default: 'in-stock'
     },
-    image: { type: String }, // NEW: URL for product image
+    image: { type: String }, // URL for product image
     category: {
         type: String,
         enum: ['vegetable', 'fruit', 'other'],
@@ -27,7 +27,7 @@ const menuSchema = new mongoose.Schema({
 
 // --- 2. Main Vendor Schema ---
 const vendorSchema = new mongoose.Schema({
-    // Authentication Fields (NEW)
+    // Authentication Fields
     email: {
         type: String,
         required: true,
@@ -36,7 +36,7 @@ const vendorSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: function() { return this.authProvider === 'local'; }
+        required: function () { return this.authProvider === 'local'; }
     },
     authProvider: {
         type: String,
@@ -57,16 +57,15 @@ const vendorSchema = new mongoose.Schema({
     },
 
     // Vendor Status and Type
-    // Vendor Status and Type
     vendorName: { type: String, required: true, trim: true }, // Person Name
     shopName: { type: String, trim: true }, // Shop Name (Public)
-    phoneNumber: { type: String, trim: true }, // NEW: Contact Number
-    deliveryAvailable: { type: Boolean, default: false }, // NEW: Home Delivery Capability
+    phoneNumber: { type: String, trim: true }, // Contact Number
+    deliveryAvailable: { type: Boolean, default: false }, // Home Delivery Capability
     vendorType: {
         type: String,
         enum: ['static', 'mobile']
     },
-    shopImage: { type: String, trim: true }, // NEW: Shop Logo/Image URL
+    shopImage: { type: String, trim: true }, // Shop Logo/Image URL
     isOnline: {
         type: Boolean,
         default: false

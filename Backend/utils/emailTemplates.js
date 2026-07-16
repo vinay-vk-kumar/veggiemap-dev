@@ -133,7 +133,7 @@ const getWelcomeEmailTemplate = (name, role) => {
                <a href="https://veggiemap.codewithvin.app/map" class="btn">Explore the Map</a>`
         }
         
-        <p style="margin-top: 32px;">If you have any questions, simply reply to this email. We're here to help!</p>
+        <p style="margin-top: 32px;">If you have any questions getting started, just reply to this email or reach out to support@codewithvin.app.</p>
     `;
 
     return getBaseTemplate('Welcome to VeggieMap', content, preheader);

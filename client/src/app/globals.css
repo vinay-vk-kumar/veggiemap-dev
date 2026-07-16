@@ -1,6 +1,4 @@
 @import "tailwindcss";
-
-/* Tailwind v4: make `dark:` respond to `.dark` class (next-themes) */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {

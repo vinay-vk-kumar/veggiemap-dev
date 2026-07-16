@@ -94,7 +94,7 @@ sequenceDiagram
 
 - **Frontend**: Next.js, React, Tailwind CSS, Framer Motion (for DOM layout animation and 3D scrolling transforms)
 - **Backend**: Node.js, Express.js, Socket.io (for persistent, room-based event broadcasting)
-- **Auth & Security**: User authorization leverages JSON Web Tokens (hard-capped to exactly **30d** expiration), paired with industry-standard generic `bcrypt` utilizing precisely **10 salt rounds** for password encryption.
+- **Auth & Security**: User authorization leverages JSON Web Tokens (hard-capped to exactly **30d** expiration), paired with industry-standard generic `bcrypt` utilizing precisely **10 salt rounds** for password encryption. All public authentication endpoints are shielded by **Google reCAPTCHA v3** to silently block bot traffic and automated scripts.
 - **Database**: MongoDB Atlas (Leveraging native `2dsphere` indexes and optimized `$near` geospacial pipelines)
 - **Storage**: Cloudinary (Off-server image CDN and on-the-fly transformations)
 
@@ -162,6 +162,7 @@ docker compose up --build -d
 - **Database Protection:** Server-side debouncing limits MongoDB upserts to **1 write per 30,000ms** per connection.
 - **Transparent Pricing:** Inventory synchronization pushes live price tags directly to the consumer map.
 - **Advanced Landing UI:** Heavily optimized DOM structure using Framer Motion for scroll-linked 3D physics.
+- **Bot Protection:** Registration and password reset flows are protected by **Google reCAPTCHA v3**, analyzing behavioral signals to transparently block automated Postman/script requests without interrupting the user experience.
 
 ## Deployment / Hosting
 

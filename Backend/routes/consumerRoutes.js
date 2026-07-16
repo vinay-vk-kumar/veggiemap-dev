@@ -2,13 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Vendor = require('../models/Vendor');
 const Consumer = require('../models/Consumer');
-const SearchTag = require('../models/SearchTag'); // New Import
+const SearchTag = require('../models/SearchTag');
 const { protect } = require('../middleware/auth');
 const mongoose = require('mongoose');
 
-// @route   POST /api/consumer/sync-search
-// @desc    Admin: Full Re-sync of Search Index
-// @access  Public (Protect in prod)
 router.post('/sync-search', async (req, res) => {
     try {
         await SearchTag.deleteMany({});
@@ -62,9 +59,6 @@ router.post('/sync-search', async (req, res) => {
     }
 });
 
-// @route   GET /api/consumer/search-v2
-// @desc    High-Performance Search using SearchTags
-// @access  Public
 router.get('/search-v2', async (req, res) => {
     const { lat, lng, maxDistance, query } = req.query;
 
@@ -128,9 +122,6 @@ router.get('/search-v2', async (req, res) => {
     }
 });
 
-// @route   GET /api/consumer/search
-// @desc    Find available vendors near a coordinate, filtered by product or shop name
-// @access  Public
 // Query Params: 
 //   lat, lng, maxDistance
 //   query: Optional search term (Product Name OR Shop Name)
@@ -251,9 +242,6 @@ router.get('/search', protect, async (req, res) => {
     }
 });
 
-// @route   POST /api/consumer/favorites/:vendorId
-// @desc    Toggle a vendor as favorite (Add/Remove)
-// @access  Private (Consumer)
 router.post('/favorites/:vendorId', protect, async (req, res) => {
     try {
         const idParam = req.params.vendorId;
@@ -293,9 +281,6 @@ router.post('/favorites/:vendorId', protect, async (req, res) => {
     }
 });
 
-// @route   GET /api/consumer/favorites
-// @desc    Get user's favorite vendors
-// @access  Private (Consumer)
 router.get('/favorites', protect, async (req, res) => {
     try {
         const userId = req.userId; // Fixed: req.userId set by middleware
@@ -314,9 +299,6 @@ router.get('/favorites', protect, async (req, res) => {
     }
 });
 
-// @route   GET /api/consumer/vendor/:id
-// @desc    Get a specific vendor's public details by their User ID (or Mongo ID)
-// @access  Public
 router.get('/vendor/:id', async (req, res) => {
     try {
         const idParam = req.params.id;
@@ -343,9 +325,6 @@ router.get('/vendor/:id', async (req, res) => {
     }
 });
 
-// @route   PUT /api/consumer/profile
-// @desc    Update consumer profile (Name)
-// @access  Private (Consumer)
 router.put('/profile', protect, async (req, res) => {
     try {
         const { name } = req.body;

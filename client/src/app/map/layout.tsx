@@ -72,7 +72,10 @@ const MobilePreferencesMenu = () => {
                     <div className="flex flex-col gap-4">
                         <GoogleTranslate />
                         <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-700/50">
-                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Dark Mode</span>
+                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                <span className="dark:hidden">Dark Mode</span>
+                                <span className="hidden dark:inline">Light Mode</span>
+                            </span>
                             <ThemeToggle />
                         </div>
                     </div>
@@ -209,7 +212,12 @@ export default function ConsumerLayout({
                                 </Button>
                             )}
                             <div className={cn("flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800 transition-all shrink-0", isSidebarOpen ? "p-2.5" : "p-2 w-14 h-14 justify-center rounded-2xl")}>
-                                {isSidebarOpen && <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 whitespace-nowrap">Dark Mode</span>}
+                                {isSidebarOpen && (
+                                    <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                                        <span className="dark:hidden">Dark Mode</span>
+                                        <span className="hidden dark:inline">Light Mode</span>
+                                    </span>
+                                )}
                                 <ThemeToggle />
                             </div>
                         </div>

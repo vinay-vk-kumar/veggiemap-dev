@@ -1,15 +1,7 @@
+# --- Root Ignore ---
+
 # Dependencies
 node_modules/
-*/node_modules/
-.pnp
-.pnp.js
-
-# Testing
-coverage/
-
-# Production
-build/
-dist/
 
 # Misc
 .DS_Store
@@ -19,12 +11,6 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Environment Variables
-.env
-.env.*
-*.env
-*.env.*
 
 # Editor directories and files
 .vscode/*
@@ -36,20 +22,9 @@ yarn-error.log*
 *.sln
 *.sw?
 
-# Next.js
-.next/
-out/
-
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# Backend and Uploads
-uploads/
-*/uploads/
-Backend/uploads/
-Backend/seed.js
-Backend/checkUser.js
+# Environment Variables
+.env
+.env.*
+*.env
+*.env.*
+!.env.example

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 interface MapState {
     center: [number, number] | null;
-    userLocation: [number, number] | null; // Fixed GPS location
+    userLocation: [number, number] | null;
     zoom: number;
     mode: 'browsing' | 'searching' | 'tracking';
     selectedVendorId: string | null;

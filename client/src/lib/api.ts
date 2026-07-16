@@ -7,7 +7,6 @@ const api = axios.create({
     },
 });
 
-// Add a request interceptor to include the auth token
 api.interceptors.request.use(
     (config) => {
         if (typeof window !== 'undefined') {

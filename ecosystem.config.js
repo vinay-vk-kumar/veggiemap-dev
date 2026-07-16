@@ -1,4 +1,4 @@
-// PM2 Ecosystem Config — run from the repo root (Seller/)
+// PM2 Ecosystem Config — run from the repo root 
 // Usage:
 //   pm2 start ecosystem.config.js
 //   pm2 save

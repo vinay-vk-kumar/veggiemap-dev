@@ -9,21 +9,21 @@ type UserRole = "consumer" | "vendor" | null;
 interface User {
     _id: string;
     name: string;
-    vendorName?: string; // Specific to vendors
+    vendorName?: string;
     email?: string;
     role: UserRole;
     userId?: string;
-    vendorType?: "mobile" | "static"; // Specific to vendors
+    vendorType?: "mobile" | "static";
     isOnline?: boolean;
-    shopName?: string; // NEW
-    phoneNumber?: string; // NEW
-    deliveryAvailable?: boolean; // NEW
-    businessHours?: { start: string; end: string; isOpen: boolean }; // NEW
+    shopName?: string;
+    phoneNumber?: string;
+    deliveryAvailable?: boolean;
+    businessHours?: { start: string; end: string; isOpen: boolean };
     location?: {
         type: "Point",
         coordinates: [number, number]; // [lng, lat]
     };
-    requiresCompletion?: boolean; // NEW: For Google vendor signups
+    requiresCompletion?: boolean;
     hasPassword?: boolean;
 }
 

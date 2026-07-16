@@ -1,0 +1,22 @@
+# --- Backend Ignore ---
+
+# Dependencies
+node_modules/
+
+# Uploads & User Generated Content
+uploads/
+*/uploads/
+
+# Testing
+coverage/
+
+# Environment Variables
+.env
+.env.*
+*.env
+*.env.*
+!.env.example
+
+# Temp scripts
+seed.js
+checkUser.js

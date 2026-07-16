@@ -5,9 +5,9 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 export const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 1000 * 60 * 5, // 5 minutes (Data stays "fresh")
-            gcTime: 1000 * 60 * 60 * 24, // 24 hours (Cache garbage collection)
-            refetchOnWindowFocus: false, // Don't refetch just because I clicked alt-tab
+            staleTime: 1000 * 60 * 5, // 5 minutes
+            gcTime: 1000 * 60 * 60 * 24, // 24 hours
+            refetchOnWindowFocus: false,
         },
     },
 });

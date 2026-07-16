@@ -22,7 +22,6 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, Postman)
         if (!origin) return callback(null, true);
         if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
         callback(new Error(`CORS blocked: ${origin}`));
@@ -225,7 +224,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- NEW: Toggle Online Status (For Static Vendors) ---
+    // Toggle Online Status (For Static Vendors) ---
     socket.on('vendor:online', async () => {
         if (!socket.userId || activeClients[socket.id]?.role !== 'vendor') return;
 
@@ -235,10 +234,6 @@ io.on('connection', (socket) => {
                 { isOnline: true }
             );
 
-            // Broadcast status update
-            // Ideally we'd broadcast to relevant rooms, but for status we might need a global or wide broadcast
-            // For now, emit to all (or just let consumers pull it on refresh/search)
-            // But real-time status is nice.
             io.emit('vendor:status-update', {
                 vendorId: socket.userId,
                 isOnline: true
@@ -261,9 +256,6 @@ io.on('connection', (socket) => {
                 const isStatic = client.vendorType === 'static';
 
                 if (isStatic) {
-                    // STATIC vendors: HTTP PATCH /toggle-online is the source of truth.
-                    // Do NOT reset isOnline on socket disconnect — they may have toggled
-                    // online via the dashboard and their socket disconnecting is unrelated.
                     console.log(`[Socket Disconnect] Static Vendor ${client.userId} disconnected — keeping DB isOnline as-is.`);
 
                     // Broadcast current DB status so consumers stay in sync
@@ -308,7 +300,7 @@ io.on('connection', (socket) => {
         }
     });
 });
-// Attach the Socket.io instance to the app for use in REST routes (Phase 3.3)
+// Attach the Socket.io instance to the app for use in REST routes 
 app.set('socketio', io);
 
 
@@ -325,7 +317,7 @@ app.use('/api/auth', authRoutes);
 const vendorRoutes = require('./routes/vendorRoutes');
 app.use('/api/vendor', vendorRoutes);
 
-// NEW: Settings Routes
+// Settings Routes
 const vendorSettingsRoutes = require('./routes/vendorSettingsRoutes');
 app.use('/api/vendor/settings', vendorSettingsRoutes);
 
@@ -339,9 +331,6 @@ app.use('/api/upload', uploadRoutes);
 // Bug Report Routes
 const bugRoutes = require('./routes/bugRoutes');
 app.use('/api/bugs', bugRoutes);
-
-// require('./routes/consumerRoutes')(app); // Next steps
-
 
 // --- 4. Start Server ---
 server.listen(PORT, () => {

@@ -39,9 +39,6 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
-// @route   POST /api/upload
-// @desc    Upload an image file to Cloudinary
-// @access  Private
 router.post('/', protect, upload.single('image'), (req, res) => {
     try {
         if (!req.file) {

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    image: vinayvkkumar/veggiemap-backend:latest
+    container_name: veggiemap-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./Backend/.env
+    restart: unless-stopped
+    # MongoDB Atlas and Cloudinary are cloud-based, so no DB containers needed here
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
+        - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-http://localhost:5000}
+    image: vinayvkkumar/veggiemap-frontend:latest
+    container_name: veggiemap-frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./client/.env.local
+    depends_on:
+      - backend
+    restart: unless-stopped

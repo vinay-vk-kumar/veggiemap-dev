@@ -19,11 +19,6 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        // Only connect if we have a token (user is logged in) - OR if we are a consumer (maybe anonymous?)
-        // The backend requires 'auth' event with token for vendors. Consumers might need it too or be anonymous. 
-        // Based on server.js: Consumers join rooms but might not HAVE to be auth'd to just listen? 
-        // Wait, server.js says: socket.on('auth', ...) checks if user is Vendor or Consumer.
-        // So Consumers DO need to authenticate to be identified.
 
         if (token && user) {
             const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";

@@ -4,12 +4,11 @@
 #  Domain: https://veggiemap.codewithvin.app
 #
 #  Run this script ON YOUR EC2 INSTANCE (Ubuntu 22.04 recommended)
-#  After cloning the repo to /home/ubuntu/veggiemap (or similar path)
 # ══════════════════════════════════════════════════════════════════════════════
 
 set -e  # Exit on any error
 
-REPO_DIR="/home/ubuntu/veggiemap-dev"   # ← change this to your actual clone path
+REPO_DIR="/home/ubuntu/veggiemap-dev"
 DOMAIN="veggiemap.codewithvin.app"
 
 echo "──────────────────────────────────────────"
@@ -44,7 +43,6 @@ npm install
 
 # ── STEP 3: Build Next.js ─────────────────────────────────────────────────────
 echo "[4/8] Building Next.js frontend..."
-# .env.production is already committed and has the correct prod URLs
 cd "$REPO_DIR/client"
 npm run build
 
@@ -71,7 +69,7 @@ pm2 start ecosystem.config.js
 
 # Save process list and configure auto-restart on reboot
 pm2 save
-pm2 startup   # Follow the printed command to enable auto-start
+pm2 startup   
 
 # ── STEP 7: Verify ────────────────────────────────────────────────────────────
 echo "[8/8] Verifying..."

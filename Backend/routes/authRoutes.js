@@ -22,13 +22,40 @@ const generateToken = (id) => {
 // Helper to generate 6-digit OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
-// --- OTP Routes ---
+const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 
-// @route   POST /api/auth/otp/send
-// @desc    Send an OTP for verification (limit 3 per day)
+// Helper to verify reCAPTCHA token
+const verifyRecaptcha = async (token) => {
+    if (!token) return false;
+    try {
+        const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `secret=${RECAPTCHA_SECRET_KEY}&response=${token}`,
+        });
+        const data = await response.json();
+        // For reCAPTCHA v3, we need to check the score (0.0 to 1.0)
+        // 0.5 is a standard threshold.
+        if (data.success && data.score >= 0.5) {
+            return true;
+        } else {
+            console.warn('reCAPTCHA failed or score too low:', data);
+            return false;
+        }
+    } catch (err) {
+        console.error('reCAPTCHA Verification Error:', err);
+        return false;
+    }
+};
+
+// --- OTP Routes ---
 router.post('/otp/send', async (req, res) => {
-    const { email, purpose } = req.body;
+    const { email, purpose, recaptchaToken } = req.body;
     if (!email || !purpose) return res.status(400).json({ message: 'Email and purpose required' });
+
+    if (!recaptchaToken) return res.status(400).json({ message: 'reCAPTCHA token is missing.' });
+    const isCaptchaValid = await verifyRecaptcha(recaptchaToken);
+    if (!isCaptchaValid) return res.status(400).json({ message: 'reCAPTCHA verification failed.' });
 
     try {
         // Rate Limiting: 3 OTPs per day per email
@@ -78,8 +105,6 @@ router.post('/otp/send', async (req, res) => {
     }
 });
 
-// @route   POST /api/auth/otp/verify
-// @desc    Verify an OTP and handle side effects (reset password, verify email)
 router.post('/otp/verify', async (req, res) => {
     const { email, otp, purpose, newPassword } = req.body;
     if (!email || !otp || !purpose) return res.status(400).json({ message: 'Missing fields' });
@@ -119,7 +144,7 @@ router.post('/otp/verify', async (req, res) => {
                 const isVendor = !!user.vendorType;
                 sendWelcomeEmail(user.email, isVendor ? 'vendor' : 'consumer', user.name || user.vendorName).catch(console.error);
 
-                return res.status(200).json({ 
+                return res.status(200).json({
                     message: 'Email verified successfully',
                     _id: user._id,
                     name: user.name || user.vendorName,
@@ -147,10 +172,10 @@ router.post('/otp/verify', async (req, res) => {
             if (!newPassword) return res.status(400).json({ message: 'New password is required' });
             let user = await Vendor.findOne({ email }) || await Consumer.findOne({ email });
             if (!user) return res.status(404).json({ message: 'User not found' });
-            
+
             // Checking instanceof Consumer ensures we trigger the correct model save hooks
             if (user.role === 'consumer' || user instanceof Consumer) {
-                user.password = newPassword; 
+                user.password = newPassword;
                 await user.save();
             } else {
                 const salt = await bcrypt.genSalt(10);
@@ -170,11 +195,8 @@ router.post('/otp/verify', async (req, res) => {
 });
 
 // --- Google Auth Route ---
-
-// @route   POST /api/auth/google/login
-// @desc    Login or Register via Google
 router.post('/google/login', async (req, res) => {
-    const { credential, role, action } = req.body; 
+    const { credential, role, action } = req.body;
 
     if (!credential) return res.status(400).json({ message: 'Missing Google credential' });
 
@@ -193,7 +215,7 @@ router.post('/google/login', async (req, res) => {
             if (!vendorUser && !consumerUser) {
                 return res.status(404).json({ message: 'No account found with this email. Please sign up first.' });
             }
-            
+
             if (role === 'vendor' && !vendorUser) {
                 return res.status(403).json({ message: 'You do not have a Vendor account. Please sign in as a Customer or sign up.' });
             }
@@ -242,7 +264,7 @@ router.post('/google/login', async (req, res) => {
                     name: name,
                     email: email,
                     authProvider: 'google',
-                    isEmailVerified: true 
+                    isEmailVerified: true
                 });
 
                 sendWelcomeEmail(email, 'consumer', name).catch(console.error);
@@ -290,11 +312,15 @@ router.post('/google/login', async (req, res) => {
 // --- Vendor Routes (Existing Logic) ---
 
 router.post('/vendor/register', async (req, res) => {
-    const { vendorName, shopName, email, password, vendorType, location, phoneNumber } = req.body;
+    const { vendorName, shopName, email, password, vendorType, location, phoneNumber, recaptchaToken } = req.body;
 
     if (!vendorName || !email || !password || !vendorType || !location || !phoneNumber) {
         return res.status(400).json({ message: 'Please include all required fields.' });
     }
+
+    if (!recaptchaToken) return res.status(400).json({ message: 'reCAPTCHA token is missing.' });
+    const isCaptchaValid = await verifyRecaptcha(recaptchaToken);
+    if (!isCaptchaValid) return res.status(400).json({ message: 'reCAPTCHA verification failed.' });
 
     const existingUser = await Vendor.findOne({ email }) || await Consumer.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email already registered.' });
@@ -348,7 +374,7 @@ router.post('/vendor/login', async (req, res) => {
 
     const vendor = await Vendor.findOne({ email });
 
-    // NEW: Check if Google User without password
+    // Check if Google User without password
     if (vendor && vendor.authProvider === 'google' && !vendor.password) {
         return res.status(400).json({ message: 'You signed up with Google. Please use Google to sign in, or reset your password to create one.' });
     }
@@ -386,30 +412,30 @@ const { protect } = require('../middleware/auth');
 router.post('/vendor/completion', protect, async (req, res) => {
     const { phoneNumber, password, vendorType, location, shopName } = req.body;
     const userId = req.userId;
-    
+
     try {
         const vendor = await Vendor.findOne({ userId });
         if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
-        
+
         const formattedPhone = phoneNumber.startsWith("+91") ? phoneNumber : "+91" + phoneNumber;
-        
+
         const existingPhone = await Vendor.findOne({ phoneNumber: formattedPhone, userId: { $ne: userId } });
         if (existingPhone) {
             return res.status(400).json({ message: 'Phone number is already registered to another account.' });
         }
-        
+
         vendor.phoneNumber = formattedPhone;
         vendor.vendorType = vendorType;
         vendor.location = { type: 'Point', coordinates: location.coordinates };
         if (shopName) vendor.shopName = shopName;
-        
+
         if (password) {
             const salt = await bcrypt.genSalt(10);
             vendor.password = await bcrypt.hash(password, salt);
         }
-        
+
         await vendor.save();
-        
+
         res.json({
             _id: vendor._id,
             vendorName: vendor.vendorName,
@@ -437,9 +463,13 @@ router.post('/vendor/completion', protect, async (req, res) => {
 // --- Consumer Routes ---
 
 router.post('/consumer/register', async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, recaptchaToken } = req.body;
 
     if (!name || !email || !password) return res.status(400).json({ message: 'Please include all required fields.' });
+
+    if (!recaptchaToken) return res.status(400).json({ message: 'reCAPTCHA token is missing.' });
+    const isCaptchaValid = await verifyRecaptcha(recaptchaToken);
+    if (!isCaptchaValid) return res.status(400).json({ message: 'reCAPTCHA verification failed.' });
 
     const existingUser = await Vendor.findOne({ email }) || await Consumer.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email already registered.' });
@@ -478,7 +508,7 @@ router.post('/consumer/login', async (req, res) => {
 
     const consumer = await Consumer.findOne({ email });
 
-    // NEW: Check if Google User without password
+    // Check if Google User without password
     if (consumer && consumer.authProvider === 'google' && !consumer.password) {
         return res.status(400).json({ message: 'You signed up with Google. Please use Google to sign in, or reset your password to create one.' });
     }

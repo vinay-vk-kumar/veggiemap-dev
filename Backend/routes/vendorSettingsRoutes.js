@@ -4,9 +4,6 @@ const Vendor = require('../models/Vendor');
 const { protect, vendorOnly } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 
-// @route   PUT /api/vendor/settings/profile
-// @desc    Update Vendor basic profile (Name, Shop Name, Phone, Hours, etc.)
-// @access  Private (Vendor)
 router.put('/profile', protect, vendorOnly, async (req, res) => {
     try {
         const { vendorName, shopName, phoneNumber, businessHours, deliveryAvailable, email, shopImage } = req.body;
@@ -43,9 +40,6 @@ router.put('/profile', protect, vendorOnly, async (req, res) => {
     }
 });
 
-// @route   PUT /api/vendor/settings/email
-// @desc    Update email after OTP verification
-// @access  Private (Vendor)
 router.put('/email', protect, vendorOnly, async (req, res) => {
     try {
         const { newEmail, otp } = req.body;
@@ -56,7 +50,7 @@ router.put('/email', protect, vendorOnly, async (req, res) => {
         // Check if email is already taken
         const existingVendor = await Vendor.findOne({ email: newEmail });
         const existingConsumer = await require('../models/Consumer').findOne({ email: newEmail });
-        
+
         if (existingVendor || existingConsumer) {
             return res.status(400).json({ message: 'This email is already in use by another account.' });
         }
@@ -95,9 +89,6 @@ router.put('/email', protect, vendorOnly, async (req, res) => {
     }
 });
 
-// @route   PUT /api/vendor/settings/location
-// @desc    Update Static Shop Location
-// @access  Private (Vendor)
 router.put('/location', protect, vendorOnly, async (req, res) => {
     try {
         const { coordinates } = req.body; // Expect [lng, lat]
@@ -106,9 +97,6 @@ router.put('/location', protect, vendorOnly, async (req, res) => {
         if (!coordinates || coordinates.length !== 2) {
             return res.status(400).json({ message: 'Invalid coordinates format. Expected [lng, lat].' });
         }
-
-        // Logic check: ensure vendor is static or allow mobile to set "home base"? 
-        // For now, allow all, but typically only relevant for Static.
 
         const updatedVendor = await Vendor.findByIdAndUpdate(
             vendorId,
@@ -131,9 +119,6 @@ router.put('/location', protect, vendorOnly, async (req, res) => {
     }
 });
 
-// @route   PUT /api/vendor/settings/password
-// @desc    Change Password
-// @access  Private (Vendor)
 router.put('/password', protect, vendorOnly, async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;

@@ -397,7 +397,7 @@ export default function ConsumerMapV3() {
                     ]}
                 />
 
-                <div className="pointer-events-auto mt-2">
+                {/* <div className="pointer-events-auto mt-2">
                     <button
                         type="button"
                         onClick={() => setIsVendorListOpen(true)}
@@ -415,7 +415,7 @@ export default function ConsumerMapV3() {
                             <List className="w-5 h-5" />
                         </div>
                     </button>
-                </div>
+                </div> */}
             </div>
 
             <MapContainer

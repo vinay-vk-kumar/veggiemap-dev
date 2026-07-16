@@ -74,8 +74,6 @@ const waitForCombo = (timeout = 5000): Promise<HTMLSelectElement | null> =>
     });
 
 const GoogleTranslate: React.FC = () => {
-    // Initialise with "en" so SSR perfectly matches initial hydration.
-    // Update it in useEffect to the cookie value to avoid React Hydration Error #418.
     const [currentLang, setCurrentLang] = useState<string>("en");
     const [isOpen, setIsOpen] = useState(false);
     const [isChanging, setIsChanging] = useState(false);
@@ -144,13 +142,10 @@ const GoogleTranslate: React.FC = () => {
         try {
             if (selectedCode === "en") {
                 clearGoogTransCookie();
-                // Google's restoreFn is unreliable in React apps.
-                // A full reload is the most robust way to return to the original DOM.
                 window.location.reload();
                 return;
             }
 
-            // Set cookie first so if combo isn't ready, a reload would still apply it
             setGoogTransCookie(selectedCode);
 
             const combo = await waitForCombo();
@@ -167,8 +162,6 @@ const GoogleTranslate: React.FC = () => {
         }
     }, [currentLang, isChanging]);
 
-    // One-time sync on mount: if Google already translated the page (e.g. back-navigation),
-    // make sure our UI reflects that without a polling loop
     useEffect(() => {
         waitForCombo(3000).then((combo) => {
             if (combo && combo.value && combo.value !== currentLang) {

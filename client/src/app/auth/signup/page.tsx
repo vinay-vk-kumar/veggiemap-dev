@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Truck, User, ArrowRight, Loader2, Eye, EyeOff, MapPin, Store, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GoogleLogin } from "@react-oauth/google";
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3";
 
 export default function SignUpPage() {
     const [step, setStep] = useState(1);
@@ -26,6 +27,7 @@ export default function SignUpPage() {
     });
 
     const [otp, setOtp] = useState("");
+    const { executeRecaptcha } = useGoogleReCaptcha();
 
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -160,7 +162,14 @@ export default function SignUpPage() {
         setIsLoading(true);
         setError("");
 
+        if (!executeRecaptcha) {
+            toast.error("reCAPTCHA has not loaded yet. Please try again in a moment.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
+            const token = await executeRecaptcha("signup");
             const endpoint = role === "vendor" ? "/auth/vendor/register" : "/auth/consumer/register";
             const payload = role === "vendor"
                 ? {
@@ -171,11 +180,13 @@ export default function SignUpPage() {
                     phoneNumber: formData.phoneNumber.startsWith("+91") ? formData.phoneNumber : "+91" + formData.phoneNumber,
                     vendorType: formData.vendorType,
                     location: location,
+                    recaptchaToken: token,
                 }
                 : {
                     name: formData.name,
                     email: formData.email,
                     password: formData.password,
+                    recaptchaToken: token,
                 };
 
             const response = await api.post(endpoint, payload);
@@ -186,8 +197,8 @@ export default function SignUpPage() {
                 return;
             }
 
-            const { token, ...userData } = response.data;
-            login(token, userData);
+            const { token: authToken, ...userData } = response.data;
+            login(authToken, userData);
 
             const userRole = userData.role || role;
             if (userRole === "vendor") {

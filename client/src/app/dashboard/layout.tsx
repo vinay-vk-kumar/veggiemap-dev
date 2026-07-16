@@ -139,7 +139,12 @@ export default function DashboardLayout({
                         <GoogleTranslate />
                     )}
                     <div className={cn("flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800 transition-all shrink-0", isCollapsed ? "p-2 w-14 h-14 justify-center rounded-2xl" : "p-2.5")}>
-                        {!isCollapsed && <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 whitespace-nowrap">Dark Mode</span>}
+                        {!isCollapsed && (
+                            <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                                <span className="dark:hidden">Dark Mode</span>
+                                <span className="hidden dark:inline">Light Mode</span>
+                            </span>
+                        )}
                         <ThemeToggle />
                     </div>
                 </div>
