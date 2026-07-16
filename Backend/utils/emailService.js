@@ -19,6 +19,7 @@ const sendWelcomeEmail = async (email, role, name) => {
             to: email,
             subject: subject,
             html: html,
+            reply_to: 'support@codewithvin.app',
         });
         console.log(`Welcome email sent to ${email}`, data);
         return data;
@@ -52,6 +53,7 @@ const sendOTPEmail = async (email, otp, purpose) => {
             to: email,
             subject: subject,
             html: html,
+            reply_to: 'support@codewithvin.app',
         });
         console.log(`OTP email sent to ${email}`, data);
         return data;
