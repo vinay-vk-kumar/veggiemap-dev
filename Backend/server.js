@@ -31,12 +31,12 @@ app.use(cors({
 }));
 app.use(express.json()); // Body parser middleware
 
-// Serve static files from the 'uploads' directory
-const path = require('path');
-app.use('/uploads', (req, res, next) => {
-    console.log(`[Static Serve] Request for: ${req.url}`);
-    next();
-}, express.static(path.join(__dirname, 'uploads')));
+// // Serve static files from the 'uploads' directory
+// const path = require('path');
+// app.use('/uploads', (req, res, next) => {
+//     console.log(`[Static Serve] Request for: ${req.url}`);
+//     next();
+// }, express.static(path.join(__dirname, 'uploads')));
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -307,6 +307,24 @@ app.set('socketio', io);
 // --- 3. Route Handlers ---
 app.get('/', (req, res) => {
     res.send('VeggieMap Backend API is running.');
+});
+
+// Health Check Route
+app.get('/api/health', (req, res) => {
+    const dbState = mongoose.connection.readyState;
+    const dbStatus = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting',
+    };
+    
+    res.status(200).json({
+        status: 'ok',
+        uptime: process.uptime(),
+        database: dbStatus[dbState] || 'unknown',
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Import and use the authentication routes
