@@ -135,7 +135,7 @@ const Hero = () => {
                                     </>
                                 ) : (
                                     <>
-                                        Find Vectors Nearby{" "}
+                                        Find Vendors Nearby{" "}
                                         <Navigation className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                                     </>
                                 )}
@@ -300,34 +300,34 @@ const Hero = () => {
                     <div className="lg:hidden w-full relative flex items-center justify-center mt-8">
                         <div className="w-full max-w-sm bg-white dark:bg-zinc-950 rounded-[32px] shadow-2xl border-[8px] border-zinc-100 dark:border-zinc-900 overflow-hidden relative aspect-[3/4]">
                             {/* Static Map Background */}
-                             <div className="absolute inset-0 opacity-[0.4] mix-blend-multiply dark:mix-blend-lighten bg-[url('https://maps.wikimedia.org/osm-intl/12/2892/1715.png')] bg-cover bg-center"></div>
-                             <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-[2px]"></div>
-                             
-                             {/* Mobile UI elements */}
-                             <div className="relative z-10 p-6 flex flex-col items-center justify-center h-full gap-8">
-                                 {/* Floating marker */}
-                                 <div className="relative hover:-translate-y-2 transition-transform cursor-pointer">
-                                     <div className="w-20 h-20 bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-700 flex flex-col items-center justify-center p-2 relative z-10">
-                                         <span className="text-5xl filter drop-shadow-md">🥦</span>
-                                     </div>
-                                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 bg-white dark:bg-zinc-800 transform rotate-45 border-r border-b border-zinc-100 dark:border-zinc-700"></div>
-                                 </div>
-                                 
-                                 {/* Floating Card */}
-                                 <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-5 py-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] border border-white/50 dark:border-zinc-700/50 flex items-center gap-4 w-[280px]">
-                                     <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
-                                         <Truck className="w-5 h-5" />
-                                     </div>
-                                     <div>
-                                         <p className="font-bold text-zinc-900 dark:text-white text-sm">
-                                             Raju's Cart
-                                         </p>
-                                         <p className="text-xs text-green-600 dark:text-green-400 font-bold mt-0.5">
-                                             Just 200m away
-                                         </p>
-                                     </div>
-                                 </div>
-                             </div>
+                            <div className="absolute inset-0 opacity-[0.4] mix-blend-multiply dark:mix-blend-lighten bg-[url('https://maps.wikimedia.org/osm-intl/12/2892/1715.png')] bg-cover bg-center"></div>
+                            <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-[2px]"></div>
+
+                            {/* Mobile UI elements */}
+                            <div className="relative z-10 p-6 flex flex-col items-center justify-center h-full gap-8">
+                                {/* Floating marker */}
+                                <div className="relative hover:-translate-y-2 transition-transform cursor-pointer">
+                                    <div className="w-20 h-20 bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-700 flex flex-col items-center justify-center p-2 relative z-10">
+                                        <span className="text-5xl filter drop-shadow-md">🥦</span>
+                                    </div>
+                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-6 bg-white dark:bg-zinc-800 transform rotate-45 border-r border-b border-zinc-100 dark:border-zinc-700"></div>
+                                </div>
+
+                                {/* Floating Card */}
+                                <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl px-5 py-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.5)] border border-white/50 dark:border-zinc-700/50 flex items-center gap-4 w-[280px]">
+                                    <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
+                                        <Truck className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-zinc-900 dark:text-white text-sm">
+                                            Raju's Cart
+                                        </p>
+                                        <p className="text-xs text-green-600 dark:text-green-400 font-bold mt-0.5">
+                                            Just 200m away
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
